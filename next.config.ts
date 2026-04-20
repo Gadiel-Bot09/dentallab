@@ -1,7 +1,10 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  turbopack: {
+    // Set explicit workspace root to avoid false lockfile detection warning
+    root: process.cwd(),
+  },
+}
 
-export default nextConfig;
+export default nextConfig
