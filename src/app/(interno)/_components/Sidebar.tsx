@@ -17,7 +17,9 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/ordenes', label: 'Órdenes', icon: '📋' },
   { href: '/pacientes', label: 'Pacientes', icon: '🧑‍⚕️' },
   { href: '/inventario', label: 'Inventario', icon: '📦' },
-  { href: '/laboratorios', label: 'Laboratorios', icon: '🔬', roles: ['admin', 'auxiliar', 'recepcionista'] },
+  { href: '/laboratorios', label: 'Clínicas/Lab', icon: '🔬', roles: ['admin', 'auxiliar', 'recepcionista'] },
+  { href: '/odontologos', label: 'Odontólogos', icon: '🦷', roles: ['admin', 'auxiliar', 'recepcionista'] },
+  { href: '/especialidades', label: 'Especialidades', icon: '⚕️', roles: ['admin'] },
   { href: '/reportes', label: 'Reportes', icon: '📈', roles: ['admin', 'odontologo'] },
   { href: '/usuarios', label: 'Usuarios', icon: '👥', roles: ['admin'] },
 ]

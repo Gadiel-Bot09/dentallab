@@ -4,14 +4,24 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { crearPacienteAction } from '../../actions'
 
+import CrearOdontologoModal from '@/components/modals/CrearOdontologoModal'
+
 export default function NuevoPacienteForm({
-  odontologos,
+  initialOdontologos,
+  especialidades,
+  laboratorios
 }: {
-  odontologos: { id: string; nombre: string; apellido: string }[]
+  initialOdontologos: { id: string; nombre: string; apellido: string }[]
+  especialidades: any[]
+  laboratorios: any[]
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  const [odontologos, setOdontologos] = useState(initialOdontologos)
+  const [selectedOdontologo, setSelectedOdontologo] = useState('')
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -91,15 +101,27 @@ export default function NuevoPacienteForm({
         </div>
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-slate-300 mb-1.5">Odontólogo Tratante</label>
-          <select
-            name="odontologo_id"
-            className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
-          >
-            <option value="">Seleccione un odontólogo...</option>
-            {odontologos.map(o => (
-              <option key={o.id} value={o.id}>Dr. {o.nombre} {o.apellido}</option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <select
+              name="odontologo_id"
+              value={selectedOdontologo}
+              onChange={(e) => setSelectedOdontologo(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+            >
+              <option value="">Seleccione un odontólogo...</option>
+              {odontologos.map(o => (
+                <option key={o.id} value={o.id}>Dr(a). {o.nombre} {o.apellido}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="shrink-0 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-400 rounded-xl text-sm font-bold transition-colors"
+              title="Crear Odontólogo Rápido"
+            >
+              +
+            </button>
+          </div>
         </div>
       </div>
 
@@ -119,6 +141,18 @@ export default function NuevoPacienteForm({
           {loading ? 'Guardando...' : 'Crear Paciente'}
         </button>
       </div>
+
+      <CrearOdontologoModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        especialidades={especialidades}
+        laboratorios={laboratorios}
+        onSuccess={(nuevo) => {
+          setOdontologos(prev => [...prev, nuevo].sort((a, b) => a.apellido.localeCompare(b.apellido)))
+          setSelectedOdontologo(nuevo.id)
+          setIsModalOpen(false)
+        }}
+      />
     </form>
   )
 }

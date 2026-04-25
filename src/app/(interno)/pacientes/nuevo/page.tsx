@@ -29,6 +29,9 @@ export default async function NuevoPacientePage() {
     .eq('activo', true)
     .order('apellido')
 
+  const { data: especialidades } = await supabase.from('especialidades').select('id, nombre').eq('activa', true).order('nombre')
+  const { data: laboratorios } = await supabase.from('laboratorios').select('id, nombre').order('nombre')
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-3 mb-2">
@@ -40,7 +43,11 @@ export default async function NuevoPacientePage() {
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8">
-        <NuevoPacienteForm odontologos={odontologos ?? []} />
+        <NuevoPacienteForm 
+          initialOdontologos={odontologos ?? []} 
+          especialidades={especialidades ?? []}
+          laboratorios={laboratorios ?? []}
+        />
       </div>
     </div>
   )
