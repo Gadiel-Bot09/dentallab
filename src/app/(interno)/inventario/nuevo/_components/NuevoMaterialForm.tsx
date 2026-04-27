@@ -146,16 +146,22 @@ export default function NuevoMaterialForm({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Stock Inicial (Opcional)</label>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              Cantidad a Ingresar *
+              <span className="ml-2 text-xs font-normal text-sky-400 bg-sky-400/10 border border-sky-400/20 px-2 py-0.5 rounded-full">Stock inicial al registrar</span>
+            </label>
             <input
               name="stock_inicial"
               type="number"
               step="0.01"
+              required
               min="0"
               defaultValue="0"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              placeholder="Ej. 50"
+              className="w-full px-4 py-2.5 bg-slate-900 border border-sky-500/30 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
             />
+            <p className="text-xs text-slate-500 mt-1.5">Esta cantidad se registrará como movimiento de entrada inicial. Puede ser 0 si aún no tienes stock disponible.</p>
           </div>
 
           <div>
