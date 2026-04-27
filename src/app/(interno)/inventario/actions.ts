@@ -21,14 +21,18 @@ export async function crearMaterialAction(formData: FormData) {
   const ip = headersList.get('x-forwarded-for') ?? null
 
   const stockInicial = parseFloat((formData.get('stock_inicial') as string) || '0')
-  const codigo = formData.get('codigo') as string
+  
+  // Autogenerar código desde la base de datos
+  const { data: generatedCode, error: rpcError } = await supabase.rpc('generate_material_code')
+  if (rpcError || !generatedCode) throw new Error('Error generando código único para el material')
+  const codigo = generatedCode
 
   const payload = {
     codigo,
     nombre: formData.get('nombre') as string,
     descripcion: (formData.get('descripcion') as string) || null,
-    categoria: formData.get('categoria') as string,
-    unidad_medida: formData.get('unidad_medida') as string,
+    categoria_id: formData.get('categoria_id') as string,
+    unidad_medida_id: formData.get('unidad_medida_id') as string,
     stock_actual: stockInicial, // If they specified a starting balance
     stock_minimo: parseFloat((formData.get('stock_minimo') as string) || '0'),
     precio_unitario: parseFloat((formData.get('precio_unitario') as string) || '0'),

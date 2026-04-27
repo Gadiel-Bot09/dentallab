@@ -6,8 +6,8 @@ interface Material {
   id: string
   codigo: string
   nombre: string
-  categoria: string
-  unidad_medida: string
+  categoria: { nombre: string }
+  unidad_medida: { nombre: string }
   stock_actual: number
   stock_minimo: number
   precio_unitario: number
@@ -66,17 +66,17 @@ export default function InventarioTable({
                   <td className="px-5 py-3 text-white font-medium">{m.nombre}</td>
                   <td className="px-5 py-3">
                     <span className="px-2 py-0.5 bg-slate-800 text-slate-400 rounded-lg text-xs">
-                      {m.categoria}
+                      {m.categoria?.nombre || 'S/N'}
                     </span>
                   </td>
                   <td className="px-5 py-3">
                     <span className={`font-mono font-bold ${isOut ? 'text-red-400' : isLow ? 'text-amber-400' : 'text-emerald-400'}`}>
                       {m.stock_actual}
                     </span>
-                    <span className="text-slate-500 text-xs ml-1">{m.unidad_medida}</span>
+                    <span className="text-slate-500 text-xs ml-1">{m.unidad_medida?.nombre || ''}</span>
                   </td>
                   <td className="px-5 py-3 text-slate-500 text-xs font-mono">
-                    {m.stock_minimo} {m.unidad_medida}
+                    {m.stock_minimo} {m.unidad_medida?.nombre || ''}
                   </td>
                   <td className="px-5 py-3">
                     {isOut ? (

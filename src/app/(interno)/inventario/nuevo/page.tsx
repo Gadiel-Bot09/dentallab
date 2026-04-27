@@ -21,6 +21,14 @@ export default async function NuevoMaterialPage() {
 
   if (profile?.rol !== 'admin') redirect('/inventario')
 
+  const [
+    { data: categorias },
+    { data: unidades }
+  ] = await Promise.all([
+    supabase.from('categorias_inventario').select('id, nombre').eq('activa', true).order('nombre'),
+    supabase.from('unidades_medida').select('id, nombre').eq('activa', true).order('nombre')
+  ])
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-3 mb-2">
@@ -32,7 +40,10 @@ export default async function NuevoMaterialPage() {
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8">
-        <NuevoMaterialForm />
+        <NuevoMaterialForm 
+          initialCategorias={categorias ?? []}
+          initialUnidades={unidades ?? []}
+        />
       </div>
     </div>
   )

@@ -27,12 +27,12 @@ export default async function InventarioPage({
 
   let query = supabase
     .from('inventario')
-    .select('*')
+    .select('*, categoria:categoria_id(nombre), unidad_medida:unidad_medida_id(nombre)')
     .eq('activo', true)
     .order('nombre')
 
   if (q) query = query.ilike('nombre', `%${q}%`)
-  if (categoria) query = query.eq('categoria', categoria)
+  if (categoria) query = query.eq('categoria_id', categoria)
 
   let { data: inventario } = await query
 
@@ -44,7 +44,8 @@ export default async function InventarioPage({
     (acc, m) => acc + m.stock_actual * m.precio_unitario, 0
   )
 
-  const categorias = ['resinas', 'metales', 'acrílicos', 'adhesivos', 'ceras', 'yesos', 'instrumentos', 'otros']
+  const { data: catData } = await supabase.from('categorias_inventario').select('id, nombre').eq('activa', true).order('nombre')
+  const categorias = catData ?? []
 
   return (
     <div className="space-y-5">
@@ -84,7 +85,7 @@ export default async function InventarioPage({
           className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40"
         >
           <option value="">Todas las categorías</option>
-          {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
+          {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
         </select>
         <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
           <input type="checkbox" name="alerta" value="1" defaultChecked={soloAlertas} className="rounded" />

@@ -21,6 +21,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/odontologos', label: 'Odontólogos', icon: '🦷', roles: ['admin', 'auxiliar', 'recepcionista'] },
   { href: '/especialidades', label: 'Especialidades', icon: '⚕️', roles: ['admin'] },
   { href: '/servicios-protesicos', label: 'Servicios Protésicos', icon: '🛠️', roles: ['admin'] },
+  { href: '/categorias-inventario', label: 'Cat. Inventario', icon: '🗂️', roles: ['admin'] },
+  { href: '/unidades-medida', label: 'Unidades Medida', icon: '⚖️', roles: ['admin'] },
   { href: '/reportes', label: 'Reportes', icon: '📈', roles: ['admin', 'odontologo'] },
   { href: '/usuarios', label: 'Usuarios', icon: '👥', roles: ['admin'] },
 ]

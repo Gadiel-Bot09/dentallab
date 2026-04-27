@@ -22,7 +22,7 @@ export default async function InventarioDetallePage({ params }: { params: Promis
 
   const { data: material } = await supabase
     .from('inventario')
-    .select('*')
+    .select('*, categoria:categoria_id(nombre), unidad_medida:unidad_medida_id(nombre)')
     .eq('id', id)
     .single()
 
@@ -58,7 +58,7 @@ export default async function InventarioDetallePage({ params }: { params: Promis
               <span className="bg-amber-500/20 text-amber-400 px-2 py-1 rounded-md text-xs font-medium border border-amber-500/20">Stock Bajo</span>
             ) : null}
           </div>
-          <p className="text-slate-400 text-sm mt-1">{material.categoria} · {material.unidad_medida}</p>
+          <p className="text-slate-400 text-sm mt-1">{material.categoria?.nombre || 'S/N'} · {material.unidad_medida?.nombre || 'S/N'}</p>
         </div>
         
         <div className="flex gap-2">
@@ -77,12 +77,12 @@ export default async function InventarioDetallePage({ params }: { params: Promis
             <div>
               <p className="text-slate-500 text-xs">Stock Actual</p>
               <p className={`font-mono text-xl font-bold mt-1 ${isOut ? 'text-red-400' : isLow ? 'text-amber-400' : 'text-emerald-400'}`}>
-                {material.stock_actual} <span className="text-sm font-normal text-slate-500">{material.unidad_medida}</span>
+                {material.stock_actual} <span className="text-sm font-normal text-slate-500">{material.unidad_medida?.nombre || ''}</span>
               </p>
             </div>
             <div>
               <p className="text-slate-500 text-xs">Stock Mínimo (Alerta)</p>
-              <p className="font-mono text-slate-300 mt-0.5">{material.stock_minimo} {material.unidad_medida}</p>
+              <p className="font-mono text-slate-300 mt-0.5">{material.stock_minimo} {material.unidad_medida?.nombre || ''}</p>
             </div>
             
             <div className="pt-4 border-t border-slate-800">
