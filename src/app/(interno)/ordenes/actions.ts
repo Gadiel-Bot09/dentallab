@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { registrarAuditLog } from '@/lib/audit/logger'
 import { emailOrdenEnviadaLab, emailLaboratorioConfirmoRecepcion, emailOrdenListaEnLab } from '@/lib/resend/client'
+import { uploadFile, MINIO_BUCKET, buildOrdenDocKey } from '@/lib/minio/client'
 import type { OrdenEstado, ModoGestion } from '@/types/database'
 
 // ─── Reusable: Get current user profile ──────────────────────────────────────
@@ -160,6 +161,60 @@ export async function crearOrdenAction(formData: FormData) {
     ip_address: ip,
     metadata: { radicado, tipo_trabajo: payload.tipo_trabajo },
   })
+
+  // ─── Process uploaded files ──────────────────────────────────────────────────
+  const archivos = formData.getAll('archivos') as File[]
+  for (const file of archivos) {
+    if (file && file.size > 0 && file.size <= 10 * 1024 * 1024) { // Max 10MB
+      const categoria = file.type.includes('pdf') ? 'especificacion' : 'foto_trabajo'
+      const buffer = Buffer.from(await file.arrayBuffer())
+      const key = buildOrdenDocKey(ordenId, categoria, file.name)
+      
+      await uploadFile({
+        bucket: MINIO_BUCKET,
+        key,
+        buffer,
+        mimeType: file.type,
+        size: file.size,
+      })
+
+      const { data: docRecord } = await supabase
+        .from('documentos_orden')
+        .insert({
+          orden_id: ordenId,
+          nombre_archivo: file.name,
+          tipo_archivo: file.type,
+          tamaño_bytes: file.size,
+          minio_bucket: MINIO_BUCKET,
+          minio_key: key,
+          descripcion: file.name,
+          categoria,
+          subido_por_id: user.id,
+        })
+        .select('id')
+        .single()
+
+      await supabase.from('eventos_orden').insert({
+        orden_id: ordenId,
+        tipo_evento: 'documento_adjunto',
+        descripcion: `Documento "${file.name}" adjuntado al crear orden`,
+        actor_id: user.id,
+        actor_rol: profile.rol,
+        modo: payload.modo_gestion,
+        metadata: { archivo: file.name, categoria, tamaño: file.size },
+      })
+      
+      await registrarAuditLog({
+        usuario_id: user.id,
+        rol: profile.rol,
+        accion: 'documento.subir',
+        entidad: 'documentos_orden',
+        entidad_id: docRecord?.id ?? ordenId,
+        ip_address: ip,
+        metadata: { orden_id: ordenId, archivo: file.name, categoria },
+      })
+    }
+  }
 
   redirect(`/ordenes/${ordenId}`)
 }

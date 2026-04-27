@@ -35,6 +35,7 @@ export default function NuevaOrdenForm({
   const [matCantidad, setMatCantidad] = useState(1)
   const [precioVenta, setPrecioVenta] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [archivosSeleccionados, setArchivosSeleccionados] = useState<File[]>([])
 
   const costoMateriales = materialesSeleccionados.reduce(
     (acc, m) => acc + m.cantidad * m.precio_unitario, 0
@@ -284,10 +285,54 @@ export default function NuevaOrdenForm({
         )}
       </div>
 
+      {/* Section: Documents/Photos */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <h2 className="font-semibold text-white text-sm uppercase tracking-wider">
+          4. Archivos Adjuntos (Fotos, Especificaciones)
+        </h2>
+        <div className="space-y-3">
+          <label className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed border-slate-700 hover:border-sky-500/50 hover:bg-sky-500/5 rounded-2xl cursor-pointer transition-all group">
+            <div className="text-center">
+              <p className="text-2xl mb-2">📎</p>
+              <p className="text-sm font-medium text-slate-300 group-hover:text-sky-400">
+                Haz clic para seleccionar archivos
+              </p>
+              <p className="text-xs text-slate-500 mt-1">PDF, JPG, PNG, WEBP (Máx. 10MB por archivo)</p>
+            </div>
+            <input
+              type="file"
+              name="archivos"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files) {
+                  setArchivosSeleccionados(Array.from(e.target.files))
+                }
+              }}
+            />
+          </label>
+
+          {archivosSeleccionados.length > 0 && (
+            <div className="bg-slate-800/40 rounded-xl p-3">
+              <p className="text-xs font-medium text-slate-400 mb-2">Archivos seleccionados:</p>
+              <ul className="space-y-1">
+                {archivosSeleccionados.map((file, i) => (
+                  <li key={i} className="text-sm text-slate-300 flex justify-between items-center bg-slate-800/80 px-3 py-2 rounded-lg">
+                    <span className="truncate max-w-[80%]">{file.name}</span>
+                    <span className="text-xs text-slate-500 shrink-0">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Section: Pricing */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
         <h2 className="font-semibold text-white text-sm uppercase tracking-wider">
-          4. Precio y Rentabilidad
+          5. Precio y Rentabilidad
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-slate-800/60 rounded-xl p-4">
