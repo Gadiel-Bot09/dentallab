@@ -9,27 +9,26 @@ interface Laboratorio { id: string; nombre: string }
 interface Material { id: string; codigo: string; nombre: string; unidad_medida: string; precio_unitario: number; stock_actual: number }
 interface MaterialSeleccionado { material_id: string; nombre: string; cantidad: number; precio_unitario: number; unidad_medida: string }
 
-const TIPOS_TRABAJO = [
-  'Placa Superior', 'Placa Inferior', 'Prótesis Parcial Superior', 'Prótesis Parcial Inferior',
-  'Prótesis Total Superior', 'Prótesis Total Inferior', 'Corona Porcelana', 'Corona Metal-Porcelana',
-  'Corona Zirconio', 'Puente fijo', 'Carilla Porcelana', 'Incrustación', 'Retenedor', 'Otro',
-]
-
 import CrearOdontologoModal from '@/components/modals/CrearOdontologoModal'
+import CrearServicioModal from '@/components/modals/CrearServicioModal'
 
 export default function NuevaOrdenForm({
-  pacientes, initialOdontologos, laboratorios, inventario, especialidades
+  pacientes, initialOdontologos, laboratorios, inventario, especialidades, initialServicios
 }: {
   pacientes: Paciente[]
   initialOdontologos: Odontologo[]
   laboratorios: Laboratorio[]
   inventario: Material[]
   especialidades: any[]
+  initialServicios: { id: string; nombre: string }[]
 }) {
   const [isPending, startTransition] = useTransition()
   const [odontologos, setOdontologos] = useState(initialOdontologos)
+  const [servicios, setServicios] = useState(initialServicios)
   const [selectedOdontologo, setSelectedOdontologo] = useState('')
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedServicio, setSelectedServicio] = useState('')
+  const [isModalOdontologoOpen, setIsModalOdontologoOpen] = useState(false)
+  const [isModalServicioOpen, setIsModalServicioOpen] = useState(false)
   const [materialesSeleccionados, setMaterialesSeleccionados] = useState<MaterialSeleccionado[]>([])
   const [matSearchId, setMatSearchId] = useState('')
   const [matCantidad, setMatCantidad] = useState(1)
@@ -134,7 +133,7 @@ export default function NuevaOrdenForm({
               </select>
               <button
                 type="button"
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => setIsModalOdontologoOpen(true)}
                 className="shrink-0 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-sky-400 rounded-xl text-sm font-bold transition-colors"
                 title="Crear Odontólogo Rápido"
               >
@@ -167,17 +166,29 @@ export default function NuevaOrdenForm({
           </div>
           <div>
             <label className="block text-sm text-slate-400 mb-1.5">Tipo de trabajo *</label>
-            <select
-              id="tipo_trabajo"
-              name="tipo_trabajo"
-              required
-              className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40"
-            >
-              <option value="">— Seleccionar tipo —</option>
-              {TIPOS_TRABAJO.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+            <div className="flex gap-2">
+              <select
+                id="tipo_trabajo"
+                name="tipo_trabajo"
+                required
+                value={selectedServicio}
+                onChange={(e) => setSelectedServicio(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+              >
+                <option value="">— Seleccionar tipo —</option>
+                {servicios.map((s) => (
+                  <option key={s.id} value={s.nombre}>{s.nombre}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setIsModalServicioOpen(true)}
+                className="shrink-0 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-sky-400 rounded-xl text-sm font-bold transition-colors"
+                title="Crear Servicio Protésico Rápido"
+              >
+                +
+              </button>
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -378,14 +389,24 @@ export default function NuevaOrdenForm({
       </div>
 
       <CrearOdontologoModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isModalOdontologoOpen}
+        onClose={() => setIsModalOdontologoOpen(false)}
         especialidades={especialidades}
         laboratorios={laboratorios}
         onSuccess={(nuevo) => {
           setOdontologos(prev => [...prev, nuevo].sort((a, b) => a.apellido.localeCompare(b.apellido)))
           setSelectedOdontologo(nuevo.id)
-          setIsModalOpen(false)
+          setIsModalOdontologoOpen(false)
+        }}
+      />
+
+      <CrearServicioModal
+        isOpen={isModalServicioOpen}
+        onClose={() => setIsModalServicioOpen(false)}
+        onSuccess={(nuevoNombre) => {
+          setServicios(prev => [...prev, { id: Date.now().toString(), nombre: nuevoNombre }].sort((a, b) => a.nombre.localeCompare(b.nombre)))
+          setSelectedServicio(nuevoNombre)
+          setIsModalServicioOpen(false)
         }}
       />
     </form>

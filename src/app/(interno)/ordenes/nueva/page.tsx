@@ -19,6 +19,7 @@ export default async function NuevaOrdenPage() {
     { data: laboratorios },
     { data: inventario },
     { data: especialidades },
+    { data: servicios },
   ] = await Promise.all([
     supabase
       .from('pacientes')
@@ -45,6 +46,11 @@ export default async function NuevaOrdenPage() {
       .select('id, nombre')
       .eq('activa', true)
       .order('nombre'),
+    supabase
+      .from('servicios_protesicos')
+      .select('id, nombre')
+      .eq('activo', true)
+      .order('nombre'),
   ])
 
   return (
@@ -61,6 +67,7 @@ export default async function NuevaOrdenPage() {
         laboratorios={laboratorios ?? []}
         inventario={inventario ?? []}
         especialidades={especialidades ?? []}
+        initialServicios={servicios ?? []}
       />
     </div>
   )
