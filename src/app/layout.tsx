@@ -17,6 +17,7 @@ export const metadata: Metadata = {
     template: '%s — DentalLab Manager',
     default: 'DentalLab Manager',
   },
+  applicationName: 'DentalLab Manager',
   description:
     'Sistema de Gestión Protésica para centros odontológicos. Gestiona órdenes de servicio, inventario, laboratorios y trazabilidad completa.',
   keywords: ['odontología', 'prótesis dental', 'laboratorio dental', 'gestión odontológica'],

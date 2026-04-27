@@ -37,14 +37,8 @@ export default function Sidebar({ userRol }: { userRol: UserRol }) {
   return (
     <aside className="hidden md:flex md:flex-col w-64 bg-slate-900 border-r border-slate-800 shrink-0">
       {/* Brand */}
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-800">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 shrink-0">
-          <span className="text-lg">🦷</span>
-        </div>
-        <div className="min-w-0">
-          <p className="font-bold text-white text-sm leading-tight truncate">DentalLab</p>
-          <p className="text-slate-500 text-xs truncate">Manager</p>
-        </div>
+      <div className="flex items-center justify-center px-4 py-5 border-b border-slate-800">
+        <img src="/logo.svg" alt="DentalLab Manager" className="h-9 w-auto" />
       </div>
 
       {/* Role badge */}

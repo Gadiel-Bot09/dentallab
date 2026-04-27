@@ -37,11 +37,9 @@ export default function ExternoLoginPage() {
 
       <div className="relative w-full max-w-md px-4">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 mb-4 shadow-lg shadow-violet-500/25">
-            <span className="text-3xl">🔬</span>
-          </div>
+          <img src="/logo.svg" alt="DentalLab Manager" className="h-16 w-auto mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-white tracking-tight">Portal Laboratorio</h1>
-          <p className="mt-2 text-slate-400 text-sm">DentalLab Manager · Acceso externo</p>
+          <p className="mt-2 text-slate-400 text-sm">Acceso externo</p>
         </div>
 
         <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl shadow-black/40">
