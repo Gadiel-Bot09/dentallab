@@ -32,6 +32,8 @@ export default function NuevoPacienteForm({
       await crearPacienteAction(fd)
       // Redirect happens inside action
     } catch (err: any) {
+      // redirect() throws a special NEXT_REDIRECT error — re-throw it
+      if (err?.digest?.startsWith('NEXT_REDIRECT')) throw err
       setError(err.message)
       setLoading(false)
     }

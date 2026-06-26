@@ -33,7 +33,7 @@ export default async function PacienteDetallePage({ params }: { params: Promise<
     .from('ordenes_servicio')
     .select('id, radicado, tipo_trabajo, estado, fecha_creacion, laboratorios(nombre)')
     .eq('paciente_id', id)
-    .order('created_at', { ascending: false })
+    .order('fecha_creacion', { ascending: false })
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
