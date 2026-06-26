@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { toast } from 'sonner'
 import { crearOdontologoRapido } from '../../app/(interno)/odontologos/actions'
 
 const schema = z.object({
@@ -28,6 +27,7 @@ interface CrearOdontologoModalProps {
 
 export default function CrearOdontologoModal({ isOpen, onClose, onSuccess, especialidades, laboratorios }: CrearOdontologoModalProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema)
@@ -37,6 +37,7 @@ export default function CrearOdontologoModal({ isOpen, onClose, onSuccess, espec
 
   async function onSubmit(data: FormData) {
     setIsLoading(true)
+    setError(null)
     try {
       const formData = new FormData()
       formData.append('nombre', data.nombre)
@@ -50,11 +51,11 @@ export default function CrearOdontologoModal({ isOpen, onClose, onSuccess, espec
 
       if (!result.success) throw new Error(result.error)
 
-      toast.success('Odontólogo registrado con éxito (Contraseña = Documento)')
       reset()
+      onClose()
       onSuccess({ id: result.userId as string, nombre: data.nombre, apellido: data.apellido })
     } catch (error: any) {
-      toast.error('Error: ' + error.message)
+      setError('Error al crear el odontólogo: ' + error.message)
     } finally {
       setIsLoading(false)
     }
@@ -69,6 +70,9 @@ export default function CrearOdontologoModal({ isOpen, onClose, onSuccess, espec
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-xl">{error}</div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-slate-300">Nombres *</label>

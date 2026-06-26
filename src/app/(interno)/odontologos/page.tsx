@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
+import OdontologoForm from './_components/OdontologoForm'
 
 export const metadata: Metadata = {
   title: 'Directorio de Odontólogos — DentalLab Manager',
@@ -16,6 +17,12 @@ export default async function OdontologosPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: profile } = await supabase
+    .from('usuarios')
+    .select('rol')
+    .eq('id', user.id)
+    .single()
+
   const params = await searchParams
   const q = params.q ?? ''
 
@@ -29,18 +36,29 @@ export default async function OdontologosPage({
     query = query.or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%,documento.ilike.%${q}%`)
   }
 
-  const { data: odontologos } = await query
+  const [
+    { data: odontologos },
+    { data: especialidades },
+    { data: laboratorios },
+  ] = await Promise.all([
+    query,
+    supabase.from('especialidades').select('id, nombre').order('nombre'),
+    supabase.from('laboratorios').select('id, nombre').order('nombre'),
+  ])
+
+  const isAdmin = profile?.rol === 'admin'
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Directorio Médico (Odontólogos)</h1>
           <p className="text-slate-400 text-sm">{odontologos?.length ?? 0} profesionales registrados.</p>
         </div>
-        {/* Aquí podríamos agregar un botón que abra el modal si quisiéramos crear desde esta pantalla */}
       </div>
 
+      {/* Search */}
       <form method="GET">
         <input
           name="q"
@@ -50,11 +68,21 @@ export default async function OdontologosPage({
         />
       </form>
 
+      {/* Form (solo admins) */}
+      {isAdmin && (
+        <OdontologoForm
+          especialidades={especialidades ?? []}
+          laboratorios={laboratorios ?? []}
+        />
+      )}
+
+      {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {!odontologos || odontologos.length === 0 ? (
           <div className="col-span-full py-16 text-center bg-slate-900 border border-slate-800 rounded-2xl">
             <p className="text-4xl mb-3">👨‍⚕️</p>
             <p className="text-slate-400 font-medium">No se encontraron odontólogos</p>
+            {isAdmin && <p className="text-slate-600 text-sm mt-2">Usa el formulario de arriba para registrar el primero.</p>}
           </div>
         ) : (
           odontologos.map((doc: any) => (
@@ -69,11 +97,11 @@ export default async function OdontologosPage({
                   <span className="w-2 h-2 rounded-full bg-slate-500"></span>
                 )}
               </div>
-              
+
               <h3 className="text-lg font-bold text-white leading-tight mb-1">
                 Dr(a). {doc.nombre} {doc.apellido}
               </h3>
-              
+
               <p className="text-sky-400 text-sm font-medium mb-4">
                 {doc.especialidades?.nombre || 'Odontología General'}
               </p>
