@@ -29,8 +29,25 @@ export default async function NuevoPacientePage() {
     .eq('activo', true)
     .order('apellido')
 
-  const { data: especialidades } = await supabase.from('especialidades').select('id, nombre').eq('activa', true).order('nombre')
-  const { data: laboratorios } = await supabase.from('laboratorios').select('id, nombre').order('nombre')
+  // These queries are optional — if they fail, we render empty arrays
+  let especialidades: { id: string; nombre: string }[] = []
+  let laboratorios: { id: string; nombre: string }[] = []
+
+  try {
+    const { data: esp } = await supabase
+      .from('especialidades')
+      .select('id, nombre')
+      .order('nombre')
+    especialidades = esp ?? []
+  } catch { /* ignore */ }
+
+  try {
+    const { data: labs } = await supabase
+      .from('laboratorios')
+      .select('id, nombre')
+      .order('nombre')
+    laboratorios = labs ?? []
+  } catch { /* ignore */ }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

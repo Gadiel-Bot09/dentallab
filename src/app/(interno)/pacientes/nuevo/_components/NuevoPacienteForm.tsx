@@ -29,12 +29,12 @@ export default function NuevoPacienteForm({
     setError(null)
     const fd = new FormData(e.currentTarget)
     try {
-      await crearPacienteAction(fd)
-      // Redirect happens inside action
+      const result = await crearPacienteAction(fd)
+      if (result?.success && result.id) {
+        router.push(`/pacientes/${result.id}`)
+      }
     } catch (err: any) {
-      // redirect() throws a special NEXT_REDIRECT error — re-throw it
-      if (err?.digest?.startsWith('NEXT_REDIRECT')) throw err
-      setError(err.message)
+      setError(err.message ?? 'Error al crear el paciente')
       setLoading(false)
     }
   }

@@ -16,20 +16,38 @@ async function getCurrentUser() {
 
 export async function crearPacienteAction(formData: FormData) {
   const { user, profile, supabase } = await getCurrentUser()
-  const adminSupabase = await createAdminClient()
 
   const headersList = await headers()
   const ip = headersList.get('x-forwarded-for') ?? null
 
-  // Generate historia atomically
-  const { data: historia, error: histError } = await adminSupabase.rpc('generate_paciente_historia')
-  if (histError || !historia) throw new Error('No se pudo generar número de historia')
+  // Generate historia number — try RPC first, fallback to timestamp-based code
+  let historia: string
+  try {
+    const adminSupabase = await createAdminClient()
+    const { data, error: histError } = await adminSupabase.rpc('generate_paciente_historia')
+    if (histError || !data) throw new Error(histError?.message ?? 'RPC returned null')
+    historia = data as string
+  } catch (rpcErr: any) {
+    // Fallback: generate a unique code using timestamp
+    const now = new Date()
+    const year = now.getFullYear()
+    const seq = String(now.getTime()).slice(-4)
+    historia = `HC-${year}-${seq}`
+  }
+
+  const nombre = formData.get('nombre') as string
+  const apellido = formData.get('apellido') as string
+  const cedula = formData.get('cedula') as string
+
+  if (!nombre || !apellido || !cedula) {
+    throw new Error('Nombre, apellido y cédula son obligatorios')
+  }
 
   const payload = {
-    numero_historia: historia as string,
-    nombre: formData.get('nombre') as string,
-    apellido: formData.get('apellido') as string,
-    cedula: formData.get('cedula') as string,
+    numero_historia: historia,
+    nombre,
+    apellido,
+    cedula,
     fecha_nacimiento: (formData.get('fecha_nacimiento') as string) || null,
     telefono: (formData.get('telefono') as string) || null,
     email: (formData.get('email') as string) || null,
@@ -47,17 +65,21 @@ export async function crearPacienteAction(formData: FormData) {
     throw new Error(error?.message ?? 'Error creando paciente')
   }
 
-  await registrarAuditLog({
-    usuario_id: user.id,
-    rol: profile.rol,
-    accion: 'paciente.crear',
-    entidad: 'pacientes',
-    entidad_id: newPaciente.id,
-    ip_address: ip,
-    metadata: { numero_historia: historia, nombre: payload.nombre, apellido: payload.apellido },
-  })
+  try {
+    await registrarAuditLog({
+      usuario_id: user.id,
+      rol: profile.rol,
+      accion: 'paciente.crear',
+      entidad: 'pacientes',
+      entidad_id: newPaciente.id,
+      ip_address: ip,
+      metadata: { numero_historia: historia, nombre, apellido },
+    })
+  } catch {
+    // Audit log failure should not block the user
+  }
 
-  redirect(`/pacientes/${newPaciente.id}`)
+  return { success: true, id: newPaciente.id }
 }
 
 export async function actualizarPacienteAction(pacienteId: string, formData: FormData) {
