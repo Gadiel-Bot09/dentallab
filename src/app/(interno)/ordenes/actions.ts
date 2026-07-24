@@ -31,7 +31,8 @@ async function getClientIp(): Promise<string | null> {
 
 // ─── CREATE ORDEN ─────────────────────────────────────────────────────────────
 export async function crearOrdenAction(formData: FormData) {
-  const { user, profile, supabase } = await getCurrentUser()
+  try {
+    const { user, profile, supabase } = await getCurrentUser()
   const ip = await getClientIp()
   const adminSupabase = await createAdminClient()
 
@@ -216,7 +217,11 @@ export async function crearOrdenAction(formData: FormData) {
     }
   }
 
-  return { success: true, id: ordenId }
+    return { success: true, id: ordenId }
+  } catch (err: any) {
+    console.error('[CREAR_ORDEN_ERROR]', err)
+    return { success: false, error: err?.message || 'Ocurrió un error inesperado al crear la orden' }
+  }
 }
 
 // ─── CAMBIAR ESTADO ───────────────────────────────────────────────────────────

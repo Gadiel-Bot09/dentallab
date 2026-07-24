@@ -83,6 +83,10 @@ export default function NuevaOrdenForm({
         const result = await crearOrdenAction(fd)
         if (result?.success && result.id) {
           router.push(`/ordenes/${result.id}`)
+        } else if (result?.error) {
+          setError(result.error)
+        } else if (!result?.success) {
+          setError('Ocurrió un error inesperado al procesar la orden.')
         }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Error desconocido al crear la orden')
