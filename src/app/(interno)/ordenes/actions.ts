@@ -216,7 +216,7 @@ export async function crearOrdenAction(formData: FormData) {
     }
   }
 
-  redirect(`/ordenes/${ordenId}`)
+  return { success: true, id: ordenId }
 }
 
 // ─── CAMBIAR ESTADO ───────────────────────────────────────────────────────────

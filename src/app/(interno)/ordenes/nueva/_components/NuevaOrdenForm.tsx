@@ -1,6 +1,7 @@
 'use client'
 // src/app/(interno)/ordenes/nueva/_components/NuevaOrdenForm.tsx
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { crearOrdenAction } from '../../actions'
 
 interface Paciente { id: string; nombre: string; apellido: string; numero_historia: string; cedula: string }
@@ -23,6 +24,7 @@ export default function NuevaOrdenForm({
   initialServicios: { id: string; nombre: string }[]
 }) {
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
   const [odontologos, setOdontologos] = useState(initialOdontologos)
   const [servicios, setServicios] = useState(initialServicios)
   const [selectedOdontologo, setSelectedOdontologo] = useState('')
@@ -78,7 +80,10 @@ export default function NuevaOrdenForm({
 
     startTransition(async () => {
       try {
-        await crearOrdenAction(fd)
+        const result = await crearOrdenAction(fd)
+        if (result?.success && result.id) {
+          router.push(`/ordenes/${result.id}`)
+        }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Error desconocido al crear la orden')
       }
