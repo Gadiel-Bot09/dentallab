@@ -47,7 +47,7 @@ export default async function OrdenDetallePage({ params }: { params: Promise<{ i
     await Promise.all([
       supabase
         .from('orden_materiales')
-        .select('*, inventario(nombre, codigo, unidad_medida)')
+        .select('*, inventario(nombre, codigo, unidades_medida(nombre))')
         .eq('orden_id', id),
       supabase
         .from('eventos_orden')
@@ -168,7 +168,7 @@ export default async function OrdenDetallePage({ params }: { params: Promise<{ i
                   {materiales.map((m: any) => (
                     <tr key={m.id}>
                       <td className="py-2 text-slate-300">{m.inventario?.nombre}<span className="text-slate-600 text-xs ml-1">({m.inventario?.codigo})</span></td>
-                      <td className="py-2 text-slate-400">{m.cantidad_usada} {m.inventario?.unidad_medida}</td>
+                      <td className="py-2 text-slate-400">{m.cantidad_usada} {m.inventario?.unidades_medida?.nombre}</td>
                       <td className="py-2 text-slate-400">{fmtCOP(m.costo_unitario_momento)}</td>
                       <td className="py-2 text-white text-right font-mono">{fmtCOP(m.cantidad_usada * m.costo_unitario_momento)}</td>
                     </tr>
