@@ -37,9 +37,8 @@ export default async function NuevaOrdenPage() {
       .order('nombre'),
     supabase
       .from('inventario')
-      .select('id, codigo, nombre, unidad_medida, precio_unitario, stock_actual')
+      .select('id, codigo, nombre, unidad_medida:unidad_medida_id(nombre), precio_unitario, stock_actual')
       .eq('activo', true)
-      .gt('stock_actual', 0)
       .order('nombre'),
     supabase
       .from('especialidades')
@@ -65,7 +64,10 @@ export default async function NuevaOrdenPage() {
         pacientes={pacientes ?? []}
         initialOdontologos={odontologos ?? []}
         laboratorios={laboratorios ?? []}
-        inventario={inventario ?? []}
+        inventario={(inventario ?? []).map((item: any) => ({
+          ...item,
+          unidad_medida: item.unidad_medida?.nombre || 'Unidades'
+        }))}
         especialidades={especialidades ?? []}
         initialServicios={servicios ?? []}
       />
