@@ -25,8 +25,12 @@ export default function CategoriaInventarioForm({
     const form = e.currentTarget
     startTransition(async () => {
       try {
-        await crearCategoriaAction(fd)
-        form.reset()
+        const res = await crearCategoriaAction(fd)
+        if (res && !res.success) {
+          setError(res.error || 'Error al crear la categoría')
+        } else {
+          form.reset()
+        }
       } catch (err: any) {
         setError(err.message)
       }
@@ -36,7 +40,8 @@ export default function CategoriaInventarioForm({
   async function handleToggle(id: string, activa: boolean) {
     startTransition(async () => {
       try {
-        await toggleCategoriaAction(id, !activa)
+        const res = await toggleCategoriaAction(id, !activa)
+        if (res && !res.success) alert(res.error || 'Error al cambiar el estado')
       } catch (err: any) {
         alert(err.message)
       }
@@ -47,7 +52,8 @@ export default function CategoriaInventarioForm({
     if (!confirm('¿Estás seguro de que deseas eliminar esta categoría? Si hay materiales usándola, no podrás borrarla.')) return
     startTransition(async () => {
       try {
-        await eliminarCategoriaAction(id)
+        const res = await eliminarCategoriaAction(id)
+        if (res && !res.success) alert(res.error || 'Error al eliminar la categoría')
       } catch (err: any) {
         alert(err.message)
       }

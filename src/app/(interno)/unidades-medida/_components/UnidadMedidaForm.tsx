@@ -25,8 +25,12 @@ export default function UnidadMedidaForm({
     const form = e.currentTarget
     startTransition(async () => {
       try {
-        await crearUnidadAction(fd)
-        form.reset()
+        const res = await crearUnidadAction(fd)
+        if (res && !res.success) {
+          setError(res.error || 'Error al crear la unidad')
+        } else {
+          form.reset()
+        }
       } catch (err: any) {
         setError(err.message)
       }
@@ -36,7 +40,8 @@ export default function UnidadMedidaForm({
   async function handleToggle(id: string, activa: boolean) {
     startTransition(async () => {
       try {
-        await toggleUnidadAction(id, !activa)
+        const res = await toggleUnidadAction(id, !activa)
+        if (res && !res.success) alert(res.error || 'Error al cambiar el estado')
       } catch (err: any) {
         alert(err.message)
       }
@@ -47,7 +52,8 @@ export default function UnidadMedidaForm({
     if (!confirm('¿Estás seguro de que deseas eliminar esta unidad de medida? Si hay materiales usándola, no podrás borrarla.')) return
     startTransition(async () => {
       try {
-        await eliminarUnidadAction(id)
+        const res = await eliminarUnidadAction(id)
+        if (res && !res.success) alert(res.error || 'Error al eliminar la unidad')
       } catch (err: any) {
         alert(err.message)
       }
