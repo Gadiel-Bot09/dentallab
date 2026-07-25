@@ -69,7 +69,9 @@ export async function crearOrdenAction(formData: FormData) {
 
   // Generate radicado atomically using the Postgres function
   const { data: radicadoResult, error: radError } = await adminSupabase.rpc('generate_radicado')
-  if (radError || !radicadoResult) throw new Error('No se pudo generar el radicado')
+  if (radError || !radicadoResult) {
+    throw new Error(`No se pudo generar el radicado: ${radError?.message || 'Resultado vacío'}`)
+  }
 
   const radicado = radicadoResult as string
 
