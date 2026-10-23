@@ -8,6 +8,7 @@ import {
   trasladarStockAction,
   configurarStockAction,
 } from '../actions'
+import InsumoSearchSelect from '@/app/(interno)/_components/InsumoSearchSelect'
 
 interface MaterialItem {
   id: string
@@ -528,11 +529,10 @@ export default function StockFarmaciaClient({
                       className="grid grid-cols-12 gap-2 items-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800"
                     >
                       <div className="col-span-6">
-                        <select
+                        <InsumoSearchSelect
+                          materials={allMaterials}
                           value={item.material_id}
-                          onChange={(e) => {
-                            const matId = e.target.value
-                            const found = allMaterials.find((m) => m.id === matId)
+                          onChange={(matId, found) => {
                             const updated = [...entradaItems]
                             updated[idx] = {
                               ...updated[idx],
@@ -541,16 +541,8 @@ export default function StockFarmaciaClient({
                             }
                             setEntradaItems(updated)
                           }}
-                          required
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
-                        >
-                          <option value="">-- Seleccionar Insumo --</option>
-                          {allMaterials.map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.codigo} — {m.nombre} ({m.unidad_medida?.nombre || 'Und'})
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="Buscar código o nombre..."
+                        />
                       </div>
 
                       <div className="col-span-2">

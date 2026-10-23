@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Area, Farmacia } from '@/types/database'
 import { guardarSolicitudAction } from '../../actions'
+import InsumoSearchSelect from '@/app/(interno)/_components/InsumoSearchSelect'
 
 interface MaterialOption {
   id: string
@@ -296,27 +297,23 @@ export default function NuevaSolicitudClient({
                 key={idx}
                 className="grid grid-cols-12 gap-2.5 items-start bg-slate-950/70 p-3 rounded-xl border border-slate-800/80"
               >
-                {/* Selector de Insumo */}
+                {/* Selector de Insumo con Buscador */}
                 <div className="col-span-12 sm:col-span-5">
-                  <label className="block text-[11px] text-slate-400 mb-1">Insumo</label>
-                  <select
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    Insumo <span className="text-red-400">*</span>
+                  </label>
+                  <InsumoSearchSelect
+                    materials={materials}
                     value={item.material_id}
-                    onChange={(e) => updateItem(idx, 'material_id', e.target.value)}
-                    required
-                    className="w-full px-2.5 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
-                  >
-                    <option value="">-- Buscar o seleccionar insumo --</option>
-                    {materials.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.codigo} — {m.nombre} ({m.unidad_medida?.abreviatura || m.unidad_medida?.nombre || 'Und'})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(matId) => updateItem(idx, 'material_id', matId)}
+                    stockMap={farmaciaId ? stockMap[farmaciaId] : undefined}
+                    placeholder="🔍 Buscar por código (ej: MAT-0001) o nombre..."
+                  />
                   {selectedMat && (
                     <div className="flex items-center gap-2 mt-1 text-[11px]">
                       <span className="text-slate-500">Unidad: {selectedMat.unidad_medida?.nombre || 'Und'}</span>
                       <span className="text-slate-600">·</span>
-                      <span className={availableStock > 0 ? 'text-emerald-400' : 'text-red-400'}>
+                      <span className={availableStock > 0 ? 'text-emerald-400' : 'text-red-400 font-semibold'}>
                         Stock Farmacia: {availableStock} {selectedMat.unidad_medida?.abreviatura || 'Und'}
                       </span>
                     </div>
