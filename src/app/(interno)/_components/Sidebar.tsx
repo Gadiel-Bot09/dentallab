@@ -14,16 +14,23 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { href: '/ordenes', label: 'Órdenes', icon: '📋' },
-  { href: '/pacientes', label: 'Pacientes', icon: '🧑‍⚕️' },
-  { href: '/inventario', label: 'Inventario', icon: '📦' },
+  { href: '/solicitudes', label: 'Solicitudes Insumos', icon: '📝' },
+  { href: '/devoluciones', label: 'Devoluciones', icon: '↩️', roles: ['admin', 'farmacia', 'jefe_area', 'auxiliar'] },
+  { href: '/farmacia/stock', label: 'Stock Farmacia', icon: '💊', roles: ['admin', 'farmacia'] },
+  { href: '/farmacia/kardex', label: 'Kardex Farmacia', icon: '📜', roles: ['admin', 'farmacia'] },
+  { href: '/farmacia/reportes', label: 'Indicadores Farmacia', icon: '📉', roles: ['admin', 'farmacia', 'jefe_area'] },
+  { href: '/areas', label: 'Áreas Institución', icon: '🏢', roles: ['admin'] },
+  { href: '/farmacias', label: 'Farmacias / Bodegas', icon: '🏥', roles: ['admin'] },
+  { href: '/ordenes', label: 'Órdenes Lab', icon: '📋', roles: ['admin', 'odontologo', 'auxiliar', 'recepcionista', 'laboratorio'] },
+  { href: '/pacientes', label: 'Pacientes', icon: '🧑‍⚕️', roles: ['admin', 'odontologo', 'auxiliar', 'recepcionista'] },
+  { href: '/inventario', label: 'Inventario Lab', icon: '📦', roles: ['admin', 'auxiliar'] },
   { href: '/laboratorios', label: 'Clínicas/Lab', icon: '🔬', roles: ['admin', 'auxiliar', 'recepcionista'] },
   { href: '/odontologos', label: 'Odontólogos', icon: '🦷', roles: ['admin', 'auxiliar', 'recepcionista'] },
   { href: '/especialidades', label: 'Especialidades', icon: '⚕️', roles: ['admin'] },
   { href: '/servicios-protesicos', label: 'Servicios Protésicos', icon: '🛠️', roles: ['admin'] },
   { href: '/categorias-inventario', label: 'Cat. Inventario', icon: '🗂️', roles: ['admin'] },
   { href: '/unidades-medida', label: 'Unidades Medida', icon: '⚖️', roles: ['admin'] },
-  { href: '/reportes', label: 'Reportes', icon: '📈', roles: ['admin', 'odontologo'] },
+  { href: '/reportes', label: 'Reportes Lab', icon: '📈', roles: ['admin', 'odontologo'] },
   { href: '/usuarios', label: 'Usuarios', icon: '👥', roles: ['admin'] },
 ]
 

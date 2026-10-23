@@ -1,7 +1,7 @@
 // src/types/database.ts
 // Central TypeScript types mirroring the Supabase database schema
 
-export type UserRol = 'admin' | 'odontologo' | 'auxiliar' | 'recepcionista' | 'laboratorio'
+export type UserRol = 'admin' | 'odontologo' | 'auxiliar' | 'recepcionista' | 'laboratorio' | 'farmacia' | 'jefe_area'
 
 export type OrdenEstado =
   | 'borrador'
@@ -234,4 +234,8 @@ export const ROL_LABELS: Record<UserRol, string> = {
   auxiliar: 'Auxiliar',
   recepcionista: 'Recepcionista',
   laboratorio: 'Laboratorio',
+  farmacia: 'Farmacia / Regente',
+  jefe_area: 'Jefe de Área',
 }
+
+export * from './farmacia'

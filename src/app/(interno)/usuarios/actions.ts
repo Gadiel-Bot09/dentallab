@@ -8,7 +8,7 @@ const usuarioSchema = z.object({
   nombre: z.string().min(2, 'El nombre es requerido'),
   apellido: z.string().min(2, 'El apellido es requerido'),
   email: z.string().email('Correo inválido'),
-  rol: z.enum(['admin', 'odontologo', 'auxiliar', 'recepcionista', 'laboratorio']),
+  rol: z.enum(['admin', 'odontologo', 'auxiliar', 'recepcionista', 'laboratorio', 'farmacia', 'jefe_area']),
   laboratorio_id: z.string().uuid().optional().nullable(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
 })

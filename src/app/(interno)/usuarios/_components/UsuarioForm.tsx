@@ -12,7 +12,7 @@ const formSchema = z.object({
   nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   apellido: z.string().min(2, 'El apellido debe tener al menos 2 caracteres'),
   email: z.string().email('Email inválido'),
-  rol: z.enum(['admin', 'odontologo', 'auxiliar', 'recepcionista', 'laboratorio']),
+  rol: z.enum(['admin', 'odontologo', 'auxiliar', 'recepcionista', 'laboratorio', 'farmacia', 'jefe_area']),
   laboratorio_id: z.string().optional().nullable(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
 }).refine(data => {
@@ -148,6 +148,8 @@ export default function UsuarioForm({ laboratorios }: { laboratorios: any[] }) {
           >
             <option value="auxiliar">Auxiliar / Empleado</option>
             <option value="recepcionista">Recepcionista</option>
+            <option value="farmacia">Farmacia / Regente de Farmacia</option>
+            <option value="jefe_area">Jefe de Área / Solicitante</option>
             <option value="admin">Administrador</option>
             <option value="odontologo">Clínica - Odontólogo (Externo)</option>
             <option value="laboratorio">Laboratorio Aliado (Externo)</option>

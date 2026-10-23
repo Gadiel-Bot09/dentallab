@@ -5,7 +5,7 @@ import { updateSession } from '@/lib/supabase/middleware'
 import { createServerClient } from '@supabase/ssr'
 import type { UserRol } from '@/types/database'
 
-const INTERNAL_ROLES: UserRol[] = ['admin', 'odontologo', 'auxiliar', 'recepcionista']
+const INTERNAL_ROLES: UserRol[] = ['admin', 'odontologo', 'auxiliar', 'recepcionista', 'farmacia', 'jefe_area']
 const EXTERNAL_ROLES: UserRol[] = ['laboratorio']
 
 const ROLE_HOME: Record<UserRol, string> = {
@@ -14,6 +14,8 @@ const ROLE_HOME: Record<UserRol, string> = {
   auxiliar: '/dashboard',
   recepcionista: '/dashboard',
   laboratorio: '/externo/ordenes',
+  farmacia: '/solicitudes',
+  jefe_area: '/solicitudes',
 }
 
 export async function proxy(request: NextRequest) {
