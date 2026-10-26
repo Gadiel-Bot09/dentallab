@@ -8,6 +8,7 @@ import { es } from 'date-fns/locale'
 import LabEstadoActions from './_components/LabEstadoActions'
 import LabUploadFoto from './_components/LabUploadFoto'
 import TimelineEventos from '@/app/(interno)/ordenes/[id]/_components/TimelineEventos'
+import Odontograma from '@/components/odontograma/Odontograma'
 
 function fmtDate(d?: string | null) {
   if (!d) return '—'
@@ -108,6 +109,32 @@ export default async function ExternoOrdenDetallePage({ params }: { params: Prom
             </div>
           )}
         </div>
+      </div>
+
+      {/* Odontograma para el Laboratorio */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div>
+            <h2 className="font-semibold text-white text-xs uppercase tracking-wider flex items-center gap-2">
+              <span>🦷</span>
+              <span>Dientes a fabricar / reemplazar</span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Piezas marcadas por la clínica para este trabajo protésico.
+            </p>
+          </div>
+          {orden.denticion && (
+            <span className="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold capitalize">
+              Dentición {orden.denticion}
+            </span>
+          )}
+        </div>
+
+        <Odontograma
+          value={orden.piezas_dentales ?? []}
+          readOnly
+          tipoTrabajo={orden.tipo_trabajo}
+        />
       </div>
 
       {/* Photo Upload */}

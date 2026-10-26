@@ -7,6 +7,7 @@ import { registrarAuditLog } from '@/lib/audit/logger'
 import { emailOrdenEnviadaLab, emailLaboratorioConfirmoRecepcion, emailOrdenListaEnLab } from '@/lib/resend/client'
 import { uploadFile, MINIO_BUCKET, buildOrdenDocKey } from '@/lib/minio/client'
 import type { OrdenEstado, ModoGestion } from '@/types/database'
+import { sanitizarPiezas, calcularDenticion, resumenPiezasTexto, type Denticion } from '@/lib/odontograma'
 
 // ─── Reusable: Get current user profile ──────────────────────────────────────
 async function getCurrentUser() {
@@ -53,6 +54,23 @@ export async function crearOrdenAction(formData: FormData) {
   const materiales: Array<{ material_id: string; cantidad: number }> = materialesJson
     ? JSON.parse(materialesJson)
     : []
+
+  // Parse piezas dentales (odontograma)
+  const piezasJson = formData.get('piezas_dentales') as string | null
+  let rawPiezas: unknown = []
+  if (piezasJson) {
+    try {
+      rawPiezas = JSON.parse(piezasJson)
+    } catch {
+      rawPiezas = []
+    }
+  }
+  const piezasDentales = sanitizarPiezas(rawPiezas)
+  const denticionRaw = (formData.get('denticion') as string) || null
+  const denticion: Denticion | null =
+    denticionRaw === 'permanente' || denticionRaw === 'temporal' || denticionRaw === 'mixta'
+      ? denticionRaw
+      : calcularDenticion(piezasDentales)
 
   // Validate stock BEFORE creating the order
   for (const mat of materiales) {
@@ -107,6 +125,8 @@ export async function crearOrdenAction(formData: FormData) {
     .from('ordenes_servicio')
     .insert({
       ...payload,
+      piezas_dentales: piezasDentales,
+      denticion,
       radicado,
       estado: 'borrador',
       fecha_creacion: new Date().toISOString(),
@@ -162,7 +182,12 @@ export async function crearOrdenAction(formData: FormData) {
     entidad: 'ordenes_servicio',
     entidad_id: ordenId,
     ip_address: ip,
-    metadata: { radicado, tipo_trabajo: payload.tipo_trabajo },
+    metadata: {
+      radicado,
+      tipo_trabajo: payload.tipo_trabajo,
+      piezas: resumenPiezasTexto(piezasDentales),
+      total_piezas: piezasDentales.length,
+    },
   })
 
   // ─── Process uploaded files ──────────────────────────────────────────────────
@@ -239,7 +264,7 @@ export async function cambiarEstadoOrdenAction(
 
   const { data: orden, error: fetchError } = await supabase
     .from('ordenes_servicio')
-    .select('id, radicado, estado, tipo_trabajo, laboratorio_id, odontologo_id, laboratorios(nombre, email), usuarios!odontologo_id(email)')
+    .select('id, radicado, estado, tipo_trabajo, laboratorio_id, odontologo_id, piezas_dentales, laboratorios(nombre, email), usuarios!odontologo_id(email)')
     .eq('id', ordenId)
     .single()
 
@@ -298,6 +323,7 @@ export async function cambiarEstadoOrdenAction(
         pacienteNombre: '(ver sistema)',
         odontologoNombre: `${profile.nombre} ${profile.apellido}`,
         linkOrden: `${appUrl}/externo/ordenes/${ordenId}`,
+        piezas: resumenPiezasTexto(orden.piezas_dentales ?? []),
       })
     }
     if (nuevoEstado === 'recibida_lab' && odEmail) {

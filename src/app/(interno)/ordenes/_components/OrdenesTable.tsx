@@ -13,6 +13,7 @@ interface Orden {
   fecha_creacion: string
   precio_venta: number
   margen_ganancia: number
+  piezas_dentales?: Array<{ fdi: number; rol: string }> | null
   pacientes?: { nombre: string; apellido: string } | null
   laboratorios?: { nombre: string } | null
   usuarios?: { nombre: string; apellido: string } | null
@@ -82,8 +83,13 @@ export default function OrdenesTable({ ordenes }: { ordenes: Orden[] }) {
                       ? `${orden.pacientes.nombre} ${orden.pacientes.apellido}`
                       : '—'}
                   </td>
-                  <td className="px-5 py-3 text-slate-400 max-w-[140px]">
-                    <span className="truncate block">{orden.tipo_trabajo}</span>
+                  <td className="px-5 py-3 text-slate-400 max-w-[180px]">
+                    <span className="truncate block font-medium text-slate-200">{orden.tipo_trabajo}</span>
+                    {orden.piezas_dentales && orden.piezas_dentales.length > 0 && (
+                      <span className="text-[11px] text-sky-400 font-mono block mt-0.5 truncate" title={`Piezas (FDI): ${orden.piezas_dentales.map((p) => p.fdi).join(', ')}`}>
+                        🦷 {orden.piezas_dentales.map((p) => p.fdi).join(', ')}
+                      </span>
+                    )}
                   </td>
                   <td className="px-5 py-3 text-slate-400">
                     {orden.laboratorios?.nombre ?? '—'}

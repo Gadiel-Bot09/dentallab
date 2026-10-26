@@ -30,6 +30,7 @@ export default async function ExternoOrdenesPage() {
     .select(`
       id, radicado, tipo_trabajo, estado, fecha_estimada_entrega,
       fecha_creacion, descripcion, observaciones_tecnicas,
+      piezas_dentales,
       pacientes(nombre, apellido),
       odontologo:usuarios!odontologo_id(nombre, apellido)
     `)
@@ -78,7 +79,12 @@ export default async function ExternoOrdenesPage() {
 
                 <div className="text-sm text-slate-400 space-y-1">
                   <p>👤 {orden.pacientes?.nombre} {orden.pacientes?.apellido}</p>
-                  <p>🦷 Dr. {orden.odontologo?.nombre} {orden.odontologo?.apellido}</p>
+                  <p>👨‍⚕️ Dr. {orden.odontologo?.nombre} {orden.odontologo?.apellido}</p>
+                  {Array.isArray(orden.piezas_dentales) && orden.piezas_dentales.length > 0 && (
+                    <p className="text-sky-300 font-mono text-xs">
+                      🦷 Piezas: {orden.piezas_dentales.map((p: any) => p.fdi).join(', ')}
+                    </p>
+                  )}
                   {orden.fecha_estimada_entrega && (
                     <p className={overdue ? 'text-red-400 font-medium' : ''}>
                       📅 Entrega: {format(new Date(orden.fecha_estimada_entrega), 'dd/MM/yyyy', { locale: es })}

@@ -29,6 +29,7 @@ export default async function OrdenesPage({
     .select(`
       id, radicado, tipo_trabajo, estado, fecha_estimada_entrega,
       fecha_creacion, costo_total_materiales, precio_venta, margen_ganancia,
+      piezas_dentales,
       pacientes(nombre, apellido),
       laboratorios(nombre),
       usuarios!odontologo_id(nombre, apellido)

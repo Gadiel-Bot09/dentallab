@@ -1,5 +1,6 @@
 // src/types/database.ts
 // Central TypeScript types mirroring the Supabase database schema
+import type { PiezaDental, Denticion } from '@/lib/odontograma'
 
 export type UserRol = 'admin' | 'odontologo' | 'auxiliar' | 'recepcionista' | 'laboratorio' | 'farmacia' | 'jefe_area'
 
@@ -109,6 +110,8 @@ export interface OrdenServicio {
   margen_ganancia: number
   registrado_por_id: string
   modo_gestion: ModoGestion
+  piezas_dentales?: PiezaDental[]
+  denticion?: Denticion | null
   created_at: string
   updated_at: string
 }

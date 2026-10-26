@@ -3,8 +3,10 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { crearOrdenAction } from '../../actions'
+import Odontograma from '@/components/odontograma/Odontograma'
+import { denticionPorEdad, calcularDenticion, type PiezaDental, type VistaDenticion } from '@/lib/odontograma'
 
-interface Paciente { id: string; nombre: string; apellido: string; numero_historia: string; cedula: string }
+interface Paciente { id: string; nombre: string; apellido: string; numero_historia: string; cedula: string; fecha_nacimiento?: string | null }
 interface Odontologo { id: string; nombre: string; apellido: string }
 interface Laboratorio { id: string; nombre: string }
 interface Material { id: string; codigo: string; nombre: string; unidad_medida: string; precio_unitario: number; stock_actual: number }
@@ -37,6 +39,8 @@ export default function NuevaOrdenForm({
   const [precioVenta, setPrecioVenta] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [archivosSeleccionados, setArchivosSeleccionados] = useState<File[]>([])
+  const [piezasDentales, setPiezasDentales] = useState<PiezaDental[]>([])
+  const [vistaSugerida, setVistaSugerida] = useState<VistaDenticion | null>(null)
 
   const costoMateriales = materialesSeleccionados.reduce(
     (acc, m) => acc + m.cantidad * m.precio_unitario, 0
@@ -74,9 +78,16 @@ export default function NuevaOrdenForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
+    if (piezasDentales.length === 0) {
+      setError('Seleccione en el odontograma al menos una pieza dental (o una arcada completa) para el laboratorio.')
+      document.getElementById('odontograma-orden')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
     const fd = new FormData(e.currentTarget)
     fd.set('materiales', JSON.stringify(materialesSeleccionados))
     fd.set('precio_venta', String(precioVenta))
+    fd.set('piezas_dentales', JSON.stringify(piezasDentales))
+    fd.set('denticion', calcularDenticion(piezasDentales) ?? '')
 
     startTransition(async () => {
       try {
@@ -114,6 +125,10 @@ export default function NuevaOrdenForm({
               id="paciente_id"
               name="paciente_id"
               required
+              onChange={(e) => {
+                const p = pacientes.find((x) => x.id === e.target.value)
+                setVistaSugerida(denticionPorEdad(p?.fecha_nacimiento))
+              }}
               className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40"
             >
               <option value="">— Seleccionar paciente —</option>
@@ -200,6 +215,42 @@ export default function NuevaOrdenForm({
             </div>
           </div>
         </div>
+
+        {/* Odontograma: piezas a tratar / reemplazar (ligado al tipo de trabajo) */}
+        <div id="odontograma-orden" className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-white flex items-center gap-2">
+                🦷 Dientes a tratar / reemplazar <span className="text-red-400">*</span>
+              </p>
+              <p className="text-xs text-slate-500">
+                {selectedServicio
+                  ? <>Indique al laboratorio las piezas del trabajo: <span className="text-sky-300 font-medium">{selectedServicio}</span></>
+                  : 'Seleccione primero el tipo de trabajo para habilitar el odontograma.'}
+              </p>
+            </div>
+            {piezasDentales.length > 0 && (
+              <span className="px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-300 text-xs font-semibold">
+                {piezasDentales.length} pieza(s)
+              </span>
+            )}
+          </div>
+
+          {selectedServicio ? (
+            <Odontograma
+              value={piezasDentales}
+              onChange={setPiezasDentales}
+              tipoTrabajo={selectedServicio}
+              vistaSugerida={vistaSugerida}
+            />
+          ) : (
+            <div className="py-10 text-center border-2 border-dashed border-slate-800 rounded-xl">
+              <p className="text-3xl mb-2 opacity-60">🦷</p>
+              <p className="text-sm text-slate-400">El odontograma aparecerá al elegir el tipo de trabajo</p>
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-slate-400 mb-1.5">Descripción del trabajo</label>

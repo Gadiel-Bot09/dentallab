@@ -23,7 +23,7 @@ export default async function NuevaOrdenPage() {
   ] = await Promise.all([
     supabase
       .from('pacientes')
-      .select('id, nombre, apellido, numero_historia, cedula')
+      .select('id, nombre, apellido, numero_historia, cedula, fecha_nacimiento')
       .order('apellido'),
     supabase
       .from('usuarios')

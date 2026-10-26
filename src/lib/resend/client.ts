@@ -57,6 +57,7 @@ export async function emailOrdenEnviadaLab({
   pacienteNombre,
   odontologoNombre,
   linkOrden,
+  piezas,
 }: {
   to: string
   radicado: string
@@ -64,6 +65,7 @@ export async function emailOrdenEnviadaLab({
   pacienteNombre: string
   odontologoNombre: string
   linkOrden: string
+  piezas?: string
 }) {
   const content = `
     <h2 style="color:#1e293b; margin-bottom:8px;">📦 Nueva Orden Asignada</h2>
@@ -71,6 +73,7 @@ export async function emailOrdenEnviadaLab({
     <div style="background:#f1f5f9; border-radius:8px; padding:20px; margin:20px 0;">
       <p style="margin:4px 0; color:#334155;"><strong>Radicado:</strong> ${radicado}</p>
       <p style="margin:4px 0; color:#334155;"><strong>Tipo de trabajo:</strong> ${tipoTrabajo}</p>
+      ${piezas ? `<p style="margin:4px 0; color:#334155;"><strong>Piezas dentales (FDI):</strong> ${piezas}</p>` : ''}
       <p style="margin:4px 0; color:#334155;"><strong>Paciente:</strong> ${pacienteNombre}</p>
       <p style="margin:4px 0; color:#334155;"><strong>Odontólogo:</strong> ${odontologoNombre}</p>
     </div>
