@@ -2,7 +2,10 @@
 // src/app/(interno)/farmacia/stock/actions.ts
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { registrarAuditLog } from '@/lib/audit/logger'
+import type { MaterialSearchOption } from '@/app/(interno)/_components/InsumoSearchSelect'
 import type {
+  ClasificacionRiesgo,
   CondicionAlmacenamiento,
   DictamenTecnico,
   EstadoLote,
@@ -107,6 +110,116 @@ export async function crearProveedorAction(input: {
     return { success: true, data: data as Proveedor }
   } catch (err: any) {
     return { success: false, error: err?.message || 'Error al registrar proveedor' }
+  }
+}
+
+export async function crearInsumoRapidoAction(input: {
+  nombre: string
+  categoria_id: string
+  unidad_medida_id: string
+  descripcion?: string
+  codigo_barras?: string
+  registro_sanitario?: string
+  clasificacion_riesgo?: ClasificacionRiesgo
+  laboratorio_fabricante?: string
+  presentacion_comercial?: string
+  condiciones_almacenamiento?: CondicionAlmacenamiento
+  iva_porcentaje?: number
+  precio_unitario?: number
+  precio_venta_referencia?: number
+  requiere_lote?: boolean
+  requiere_vencimiento?: boolean
+}): Promise<{ success: boolean; data?: MaterialSearchOption; error?: string }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+
+    const { data: profile } = await supabase
+      .from('usuarios')
+      .select('id, rol')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || !['admin', 'farmacia'].includes(profile.rol)) {
+      return { success: false, error: 'No tiene permisos para registrar nuevos insumos en el catálogo' }
+    }
+
+    const nombre = input.nombre?.trim()
+    if (!nombre) return { success: false, error: 'El nombre del insumo es obligatorio' }
+    if (!input.categoria_id) return { success: false, error: 'Debe seleccionar una categoría' }
+    if (!input.unidad_medida_id) return { success: false, error: 'Debe seleccionar una unidad de medida' }
+
+    const admin = await createAdminClient()
+
+    // Autogenerar código MAT-XXXX
+    const { data: generatedCode, error: codeErr } = await admin.rpc('generate_material_code')
+    if (codeErr || !generatedCode) {
+      return { success: false, error: `Error generando código único: ${codeErr?.message || 'sin resultado'}` }
+    }
+
+    const barcode = input.codigo_barras?.trim() || null
+    const payload = {
+      codigo: generatedCode as string,
+      nombre,
+      descripcion: input.descripcion?.trim() || null,
+      categoria_id: input.categoria_id,
+      unidad_medida_id: input.unidad_medida_id,
+      stock_actual: 0,
+      stock_minimo: 0,
+      precio_unitario: Number(input.precio_unitario) || 0,
+      precio_venta_referencia: Number(input.precio_venta_referencia) || 0,
+      codigo_barras: barcode,
+      registro_sanitario: input.registro_sanitario?.trim() || null,
+      clasificacion_riesgo: input.clasificacion_riesgo || 'insumo_general',
+      laboratorio_fabricante: input.laboratorio_fabricante?.trim() || null,
+      presentacion_comercial: input.presentacion_comercial?.trim() || null,
+      condiciones_almacenamiento: input.condiciones_almacenamiento || 'ambiente',
+      iva_porcentaje: Number(input.iva_porcentaje) || 0,
+      requiere_lote: input.requiere_lote ?? true,
+      requiere_vencimiento: input.requiere_vencimiento ?? true,
+      activo: true,
+    }
+
+    const { data: created, error: insErr } = await admin
+      .from('inventario')
+      .insert(payload)
+      .select(`
+        id, codigo, nombre, precio_unitario, precio_venta_referencia,
+        codigo_barras, registro_sanitario, laboratorio_fabricante,
+        presentacion_comercial, condiciones_almacenamiento,
+        requiere_lote, requiere_vencimiento, iva_porcentaje,
+        categoria:categoria_id(nombre),
+        unidad_medida:unidad_medida_id(nombre, abreviatura)
+      `)
+      .single()
+
+    if (insErr || !created) {
+      if (insErr?.code === '23505') {
+        return {
+          success: false,
+          error: barcode
+            ? `El código de barras "${barcode}" ya pertenece a otro insumo registrado.`
+            : 'Ya existe un insumo con ese código único.',
+        }
+      }
+      return { success: false, error: insErr?.message || 'No se pudo crear el insumo' }
+    }
+
+    await registrarAuditLog({
+      usuario_id: user.id,
+      rol: profile.rol,
+      accion: 'inventario.crear_rapido',
+      entidad: 'inventario',
+      entidad_id: created.id,
+      metadata: { codigo: created.codigo, nombre: created.nombre, codigo_barras: barcode },
+    })
+
+    revalidatePath('/farmacia/stock')
+    revalidatePath('/inventario')
+    return { success: true, data: created as unknown as MaterialSearchOption }
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Error al registrar nuevo insumo' }
   }
 }
 

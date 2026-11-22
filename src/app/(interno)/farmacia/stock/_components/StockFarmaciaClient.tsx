@@ -42,6 +42,8 @@ interface Props {
   allMaterials: MaterialSearchOption[]
   proveedores: Proveedor[]
   recepciones: RecepcionFarmacia[]
+  categorias: { id: string; nombre: string }[]
+  unidades: { id: string; nombre: string; abreviatura?: string | null }[]
   userCanManage: boolean
 }
 
@@ -66,6 +68,8 @@ export default function StockFarmaciaClient({
   allMaterials,
   proveedores,
   recepciones,
+  categorias,
+  unidades,
   userCanManage,
 }: Props) {
   const [selectedFarmaciaId, setSelectedFarmaciaId] = useState(initialFarmaciaId)
@@ -569,6 +573,8 @@ export default function StockFarmaciaClient({
           farmacia={currentFarmacia}
           allMaterials={allMaterials}
           initialProveedores={proveedores}
+          categorias={categorias}
+          unidades={unidades}
           onClose={() => setModalEntrada(false)}
           onSuccessReload={() => {
             setModalEntrada(false)

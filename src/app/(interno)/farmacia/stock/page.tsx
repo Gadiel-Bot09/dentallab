@@ -62,13 +62,15 @@ export default async function StockFarmaciaPage({ searchParams }: PageProps) {
       ? sp.farmacia_id
       : farmacias[0].id
 
-  // Cargar catálogo de materiales (con campos normativos si ya fueron migrados), stock, lotes, proveedores y actas
+  // Cargar catálogo de materiales (con campos normativos si ya fueron migrados), stock, lotes, proveedores, actas, categorías y unidades
   const [
     { data: materialsData },
     { data: stockData },
     lotesRes,
     proveedoresRes,
     recepcionesRes,
+    { data: categoriasData },
+    { data: unidadesData },
   ] = await Promise.all([
     adminSupabase
       .from('inventario')
@@ -105,6 +107,16 @@ export default async function StockFarmaciaPage({ searchParams }: PageProps) {
       .eq('farmacia_id', selectedFarmaciaId)
       .order('fecha_recepcion', { ascending: false })
       .limit(100),
+    adminSupabase
+      .from('categorias_inventario')
+      .select('id, nombre')
+      .eq('activa', true)
+      .order('nombre'),
+    adminSupabase
+      .from('unidades_medida')
+      .select('id, nombre, abreviatura')
+      .eq('activa', true)
+      .order('nombre'),
   ])
 
   const stockMap = new Map((stockData || []).map((s) => [s.material_id, s]))
@@ -182,6 +194,8 @@ export default async function StockFarmaciaPage({ searchParams }: PageProps) {
         allMaterials={(materialsData as any) || []}
         proveedores={((proveedoresRes.data as any) || []) as Proveedor[]}
         recepciones={((recepcionesRes.data as any) || []) as RecepcionFarmacia[]}
+        categorias={categoriasData || []}
+        unidades={unidadesData || []}
         userCanManage={userCanManage}
       />
     </div>

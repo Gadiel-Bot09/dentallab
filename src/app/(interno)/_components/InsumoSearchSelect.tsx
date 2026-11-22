@@ -24,6 +24,7 @@ interface InsumoSearchSelectProps {
   materials: MaterialSearchOption[]
   value: string
   onChange: (materialId: string, material?: MaterialSearchOption) => void
+  onCreateNew?: (initialQuery: string) => void
   stockMap?: Record<string, number> // material_id -> stock disponible
   placeholder?: string
   className?: string
@@ -34,6 +35,7 @@ export default function InsumoSearchSelect({
   materials,
   value,
   onChange,
+  onCreateNew,
   stockMap,
   placeholder = 'Buscar por código o nombre...',
   className = '',
@@ -132,6 +134,10 @@ export default function InsumoSearchSelect({
       e.preventDefault()
       if (filteredMaterials[activeIndex]) {
         handleSelect(filteredMaterials[activeIndex])
+      } else if (onCreateNew && searchTerm.trim()) {
+        const q = searchTerm.trim()
+        setIsOpen(false)
+        onCreateNew(q)
       }
     } else if (e.key === 'Escape') {
       e.preventDefault()
@@ -314,17 +320,61 @@ export default function InsumoSearchSelect({
             })}
 
             {filteredMaterials.length === 0 && (
-              <li className="py-8 px-4 text-center text-slate-500 text-xs">
-                <p className="text-xl mb-1">🔍</p>
-                <p className="text-slate-400 font-medium">
-                  No se encontró ningún insumo con &ldquo;{searchTerm}&rdquo;
-                </p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Verifica que el código o nombre esté bien escrito.
-                </p>
+              <li className="py-6 px-4 text-center text-slate-500 text-xs space-y-2.5">
+                <p className="text-xl">🔍</p>
+                <div>
+                  <p className="text-slate-300 font-medium">
+                    No se encontró ningún insumo con &ldquo;{searchTerm}&rdquo;
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {onCreateNew
+                      ? '¿Es un insumo nuevo? Regístralo ahora mismo en el catálogo.'
+                      : 'Verifica que el código o nombre esté bien escrito.'}
+                  </p>
+                </div>
+                {onCreateNew && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const q = searchTerm.trim()
+                      setIsOpen(false)
+                      onCreateNew(q)
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg text-xs shadow-lg shadow-emerald-600/20 transition-colors"
+                  >
+                    <span>＋</span>
+                    <span>
+                      {searchTerm.trim()
+                        ? `Crear insumo "${searchTerm.trim()}"`
+                        : 'Registrar nuevo insumo'}
+                    </span>
+                  </button>
+                )}
               </li>
             )}
           </ul>
+
+          {/* Acción fija al pie para registrar nuevo insumo en catálogo */}
+          {onCreateNew && filteredMaterials.length > 0 && (
+            <div className="p-2 bg-slate-950/90 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  const q = searchTerm.trim()
+                  setIsOpen(false)
+                  onCreateNew(q)
+                }}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/25 rounded-lg text-xs font-semibold transition-colors"
+              >
+                <span>＋</span>
+                <span>
+                  {searchTerm.trim()
+                    ? `Registrar nuevo insumo "${searchTerm.trim()}"`
+                    : '¿No está en la lista? Registrar nuevo insumo'}
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
