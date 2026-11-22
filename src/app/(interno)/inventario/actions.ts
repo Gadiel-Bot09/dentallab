@@ -36,7 +36,16 @@ export async function crearMaterialAction(formData: FormData) {
     stock_actual: stockInicial, // If they specified a starting balance
     stock_minimo: parseFloat((formData.get('stock_minimo') as string) || '0'),
     precio_unitario: parseFloat((formData.get('precio_unitario') as string) || '0'),
-    precio_venta_referencia: parseFloat((formData.get('precio_venta_referencia') as string) || '0')
+    precio_venta_referencia: parseFloat((formData.get('precio_venta_referencia') as string) || '0'),
+    codigo_barras: ((formData.get('codigo_barras') as string) || '').trim() || null,
+    registro_sanitario: ((formData.get('registro_sanitario') as string) || '').trim() || null,
+    clasificacion_riesgo: ((formData.get('clasificacion_riesgo') as string) || 'insumo_general').trim(),
+    laboratorio_fabricante: ((formData.get('laboratorio_fabricante') as string) || '').trim() || null,
+    presentacion_comercial: ((formData.get('presentacion_comercial') as string) || '').trim() || null,
+    condiciones_almacenamiento: ((formData.get('condiciones_almacenamiento') as string) || 'ambiente').trim(),
+    iva_porcentaje: parseFloat((formData.get('iva_porcentaje') as string) || '0'),
+    requiere_lote: formData.get('requiere_lote') === 'on',
+    requiere_vencimiento: formData.get('requiere_vencimiento') === 'on',
   }
 
   // Insert base material
@@ -47,7 +56,7 @@ export async function crearMaterialAction(formData: FormData) {
     .single()
 
   if (error || !newMaterial) {
-    if (error?.code === '23505') throw new Error('Ya existe un material con ese código único')
+    if (error?.code === '23505') throw new Error('Ya existe un material con ese código único o código de barras')
     throw new Error(error?.message ?? 'Error creando material')
   }
 

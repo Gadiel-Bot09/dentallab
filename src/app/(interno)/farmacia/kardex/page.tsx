@@ -53,8 +53,7 @@ export default async function KardexFarmaciaPage({ searchParams }: PageProps) {
   let query = adminSupabase
     .from('movimientos_farmacia')
     .select(`
-      id, tipo, cantidad, stock_anterior, stock_resultante,
-      costo_unitario, valor_total, documento_referencia, proveedor, motivo, created_at,
+      *,
       farmacia:farmacia_id(codigo, nombre),
       material:material_id(codigo, nombre),
       area:area_id(codigo, nombre),
@@ -79,6 +78,8 @@ export default async function KardexFarmaciaPage({ searchParams }: PageProps) {
       m.material?.nombre?.toLowerCase().includes(term) ||
       m.material?.codigo?.toLowerCase().includes(term) ||
       m.documento_referencia?.toLowerCase().includes(term) ||
+      m.numero_lote?.toLowerCase().includes(term) ||
+      m.proveedor?.toLowerCase().includes(term) ||
       m.area?.nombre?.toLowerCase().includes(term) ||
       m.motivo?.toLowerCase().includes(term)
     )
@@ -195,7 +196,19 @@ export default async function KardexFarmaciaPage({ searchParams }: PageProps) {
                     </td>
                     <td className="px-4 py-3">
                       <p className="font-medium text-white">{m.material?.nombre}</p>
-                      <p className="text-[11px] text-sky-400 font-mono">{m.material?.codigo}</p>
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] mt-0.5">
+                        <span className="text-sky-400 font-mono">{m.material?.codigo}</span>
+                        {m.numero_lote && (
+                          <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-[10px]">
+                            Lote: {m.numero_lote}
+                          </span>
+                        )}
+                        {m.fecha_vencimiento && (
+                          <span className="text-slate-500 font-mono text-[10px]">
+                            Vto: {String(m.fecha_vencimiento).slice(0, 10).split('-').reverse().join('/')}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap font-bold text-sm">
                       <span className={isPositive ? 'text-emerald-400' : 'text-indigo-400'}>

@@ -9,6 +9,15 @@ export interface MaterialSearchOption {
   categoria?: { nombre: string } | null
   unidad_medida?: { nombre: string; abreviatura: string | null } | null
   precio_unitario?: number
+  precio_venta_referencia?: number
+  codigo_barras?: string | null
+  registro_sanitario?: string | null
+  laboratorio_fabricante?: string | null
+  presentacion_comercial?: string | null
+  condiciones_almacenamiento?: string | null
+  requiere_lote?: boolean
+  requiere_vencimiento?: boolean
+  iva_porcentaje?: number
 }
 
 interface InsumoSearchSelectProps {
@@ -43,7 +52,7 @@ export default function InsumoSearchSelect({
     [materials, value]
   )
 
-  // Filtrado en tiempo real por nombre, código o categoría
+  // Filtrado en tiempo real por nombre, código, código de barras, INVIMA o categoría
   const filteredMaterials = useMemo(() => {
     if (!searchTerm.trim()) return materials
     const term = searchTerm.toLowerCase().trim()
@@ -51,6 +60,9 @@ export default function InsumoSearchSelect({
       (m) =>
         m.nombre.toLowerCase().includes(term) ||
         m.codigo.toLowerCase().includes(term) ||
+        (m.codigo_barras && m.codigo_barras.toLowerCase().includes(term)) ||
+        (m.registro_sanitario && m.registro_sanitario.toLowerCase().includes(term)) ||
+        (m.laboratorio_fabricante && m.laboratorio_fabricante.toLowerCase().includes(term)) ||
         (m.categoria?.nombre && m.categoria.nombre.toLowerCase().includes(term))
     )
   }, [materials, searchTerm])
@@ -199,7 +211,7 @@ export default function InsumoSearchSelect({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Escribe código (ej: MAT-0001) o nombre..."
+                placeholder="Código (MAT-0001), nombre, código de barras o INVIMA..."
                 className="w-full pl-8 pr-7 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500 focus:border-sky-500"
               />
               {searchTerm && (
@@ -256,7 +268,7 @@ export default function InsumoSearchSelect({
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-400 mt-1">
                       {mat.categoria?.nombre && (
                         <span>{mat.categoria.nombre}</span>
                       )}
@@ -264,6 +276,18 @@ export default function InsumoSearchSelect({
                       <span>
                         Unidad: {mat.unidad_medida?.abreviatura || mat.unidad_medida?.nombre || 'Und'}
                       </span>
+                      {mat.codigo_barras && (
+                        <>
+                          <span>·</span>
+                          <span className="font-mono text-slate-500">EAN: {mat.codigo_barras}</span>
+                        </>
+                      )}
+                      {mat.registro_sanitario && (
+                        <>
+                          <span>·</span>
+                          <span className="text-emerald-400/80">{mat.registro_sanitario}</span>
+                        </>
+                      )}
                     </div>
                   </div>
 

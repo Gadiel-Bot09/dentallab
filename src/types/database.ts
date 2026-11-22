@@ -82,6 +82,19 @@ export interface Inventario {
   stock_minimo: number
   precio_unitario: number
   precio_venta_referencia: number
+  codigo_barras?: string | null
+  registro_sanitario?: string | null
+  clasificacion_riesgo?: string | null
+  laboratorio_fabricante?: string | null
+  presentacion_comercial?: string | null
+  forma_farmaceutica?: string | null
+  concentracion?: string | null
+  principio_activo?: string | null
+  codigo_cum?: string | null
+  condiciones_almacenamiento?: string | null
+  requiere_lote?: boolean
+  requiere_vencimiento?: boolean
+  iva_porcentaje?: number
   activo: boolean
   created_at: string
   updated_at: string

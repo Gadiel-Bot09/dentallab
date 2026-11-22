@@ -4,6 +4,12 @@ import { notFound, redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import {
+  CLASIFICACION_RIESGO_LABELS,
+  CONDICION_ALMACENAMIENTO_LABELS,
+  type ClasificacionRiesgo,
+  type CondicionAlmacenamiento,
+} from '@/types/farmacia'
 
 export const metadata: Metadata = {
   title: 'Detalle de Material — DentalLab Manager',
@@ -93,6 +99,52 @@ export default async function InventarioDetallePage({ params }: { params: Promis
               <p className="text-slate-500 text-xs">Precio de Venta (Referencia)</p>
               <p className="text-slate-300 font-mono mt-0.5">{fmtCOP(material.precio_venta_referencia)}</p>
             </div>
+
+            {(material.codigo_barras || material.registro_sanitario || material.laboratorio_fabricante || material.presentacion_comercial) && (
+              <div className="pt-4 border-t border-slate-800 space-y-2.5">
+                <p className="text-xs font-semibold text-sky-400 uppercase tracking-wider">Datos Normativos</p>
+                {material.codigo_barras && (
+                  <div>
+                    <p className="text-slate-500 text-xs">Código de Barras</p>
+                    <p className="text-slate-200 font-mono text-xs mt-0.5">{material.codigo_barras}</p>
+                  </div>
+                )}
+                {material.registro_sanitario && (
+                  <div>
+                    <p className="text-slate-500 text-xs">Registro Sanitario INVIMA</p>
+                    <p className="text-emerald-400 text-xs font-medium mt-0.5">{material.registro_sanitario}</p>
+                  </div>
+                )}
+                {material.clasificacion_riesgo && (
+                  <div>
+                    <p className="text-slate-500 text-xs">Clasificación de Riesgo</p>
+                    <p className="text-slate-300 text-xs mt-0.5">
+                      {CLASIFICACION_RIESGO_LABELS[material.clasificacion_riesgo as ClasificacionRiesgo] || material.clasificacion_riesgo}
+                    </p>
+                  </div>
+                )}
+                {material.laboratorio_fabricante && (
+                  <div>
+                    <p className="text-slate-500 text-xs">Fabricante / Marca</p>
+                    <p className="text-slate-300 text-xs mt-0.5">{material.laboratorio_fabricante}</p>
+                  </div>
+                )}
+                {material.presentacion_comercial && (
+                  <div>
+                    <p className="text-slate-500 text-xs">Presentación Comercial</p>
+                    <p className="text-slate-300 text-xs mt-0.5">{material.presentacion_comercial}</p>
+                  </div>
+                )}
+                {material.condiciones_almacenamiento && (
+                  <div>
+                    <p className="text-slate-500 text-xs">Almacenamiento</p>
+                    <p className="text-slate-300 text-xs mt-0.5">
+                      {CONDICION_ALMACENAMIENTO_LABELS[material.condiciones_almacenamiento as CondicionAlmacenamiento] || material.condiciones_almacenamiento}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {material.descripcion && (
               <div className="pt-4 border-t border-slate-800">

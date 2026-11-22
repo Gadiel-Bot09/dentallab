@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { crearMaterialAction } from '../../actions'
 import CrearCategoriaInventarioModal from '@/components/modals/CrearCategoriaInventarioModal'
 import CrearUnidadMedidaModal from '@/components/modals/CrearUnidadMedidaModal'
+import { CLASIFICACION_RIESGO_LABELS, CONDICION_ALMACENAMIENTO_LABELS } from '@/types/farmacia'
 
 export default function NuevoMaterialForm({
   initialCategorias,
@@ -187,6 +188,121 @@ export default function NuevoMaterialForm({
               className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
               placeholder="0"
             />
+          </div>
+        </div>
+
+        {/* Información Normativa y Trazabilidad INVIMA */}
+        <div className="pt-5 border-t border-slate-800 space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <span>🏥</span>
+              <span>Información Normativa y Trazabilidad (INVIMA / Farmacia)</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Estos datos se autocompletarán automáticamente al registrar entradas y compras en farmacia.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Código de Barras (EAN / GS1)</label>
+              <input
+                name="codigo_barras"
+                type="text"
+                placeholder="Ej: 7701234567890"
+                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Registro Sanitario INVIMA</label>
+              <input
+                name="registro_sanitario"
+                type="text"
+                placeholder="Ej: INVIMA 2023DM-0025142"
+                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Clasificación de Riesgo</label>
+              <select
+                name="clasificacion_riesgo"
+                defaultValue="insumo_general"
+                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              >
+                {Object.entries(CLASIFICACION_RIESGO_LABELS).map(([k, label]) => (
+                  <option key={k} value={k}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Laboratorio / Fabricante</label>
+              <input
+                name="laboratorio_fabricante"
+                type="text"
+                placeholder="Ej: 3M ESPE, Septodont, Dentsply..."
+                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Presentación Comercial</label>
+              <input
+                name="presentacion_comercial"
+                type="text"
+                placeholder="Ej: Caja x 50 carpules, Jeringa x 4g"
+                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Condición de Almacenamiento</label>
+              <select
+                name="condiciones_almacenamiento"
+                defaultValue="ambiente"
+                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              >
+                {Object.entries(CONDICION_ALMACENAMIENTO_LABELS).map(([k, label]) => (
+                  <option key={k} value={k}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Tarifa IVA (%)</label>
+              <select
+                name="iva_porcentaje"
+                defaultValue="0"
+                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              >
+                <option value="0">0% (Exento / Excluido)</option>
+                <option value="5">5% (Tarifa reducida)</option>
+                <option value="19">19% (Tarifa general)</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col justify-center gap-2 pt-2">
+              <label className="inline-flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="requiere_lote"
+                  defaultChecked
+                  className="rounded border-slate-600 bg-slate-900 text-sky-500"
+                />
+                <span>Exigir número de lote al ingresar</span>
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="requiere_vencimiento"
+                  defaultChecked
+                  className="rounded border-slate-600 bg-slate-900 text-sky-500"
+                />
+                <span>Exigir fecha de vencimiento al ingresar</span>
+              </label>
+            </div>
           </div>
         </div>
 

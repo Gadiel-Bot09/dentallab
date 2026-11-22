@@ -50,7 +50,7 @@ export default async function NuevaSolicitudPage({ searchParams }: PageProps) {
       adminSupabase
         .from('inventario')
         .select(`
-          id, codigo, nombre, precio_unitario, activo,
+          *,
           categoria:categoria_id(nombre),
           unidad_medida:unidad_medida_id(nombre, abreviatura)
         `)
