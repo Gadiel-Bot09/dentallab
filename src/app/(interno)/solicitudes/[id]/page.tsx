@@ -1,6 +1,7 @@
 // src/app/(interno)/solicitudes/[id]/page.tsx
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
+import { getUserAuthContext } from '@/lib/rbac-server'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { format } from 'date-fns'
@@ -33,9 +34,12 @@ function fmtCOP(v: number) {
 }
 
 export default async function SolicitudDetallePage({ params }: PageProps) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const ctx = await getUserAuthContext()
+  if (!ctx) redirect('/login')
+  if (!ctx.canAny(['solicitudes.ver', 'solicitudes.crear', 'solicitudes.aprobar', 'solicitudes.despachar'])) {
+    redirect('/dashboard?error=sin_permiso')
+  }
+  const user = { id: ctx.userId }
 
   const { id } = await params
   const adminSupabase = await createAdminClient()
@@ -104,8 +108,12 @@ export default async function SolicitudDetallePage({ params }: PageProps) {
     .eq('area_id', solicitud.area_id)
     .maybeSingle()
 
-  const userCanApproveOrDispatch = isAdmin || Boolean(userFarmacia) || profile?.rol === 'farmacia'
-  const userCanReceiveOrReturn = isAdmin || Boolean(userArea) || profile?.rol === 'jefe_area'
+  const userCanApproveOrDispatch =
+    ctx.isAdmin ||
+    (ctx.canAny(['solicitudes.aprobar', 'solicitudes.despachar']) && (Boolean(userFarmacia) || ctx.rol === 'farmacia' || ctx.can('solicitudes.despachar')))
+  const userCanReceiveOrReturn =
+    ctx.isAdmin ||
+    (ctx.canAny(['solicitudes.recibir', 'devoluciones.crear']) && (Boolean(userArea) || ctx.rol === 'jefe_area' || ctx.can('solicitudes.recibir')))
 
   // Cargar stock disponible en esta farmacia para los materiales de la solicitud
   const materialIds = (solicitud.items || []).map((i) => i.material_id)

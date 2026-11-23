@@ -1,8 +1,9 @@
 // src/app/(interno)/solicitudes/nueva/page.tsx
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import type { Area, Farmacia } from '@/types/database'
+import { getUserAuthContext } from '@/lib/rbac-server'
 import NuevaSolicitudClient from './_components/NuevaSolicitudClient'
 
 export const metadata: Metadata = {
@@ -14,18 +15,14 @@ interface PageProps {
 }
 
 export default async function NuevaSolicitudPage({ searchParams }: PageProps) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: profile } = await supabase
-    .from('usuarios')
-    .select('id, rol')
-    .eq('id', user.id)
-    .single()
+  const ctx = await getUserAuthContext()
+  if (!ctx) redirect('/login')
+  if (!ctx.can('solicitudes.crear')) redirect('/solicitudes?error=sin_permiso')
 
   const adminSupabase = await createAdminClient()
   const sp = await searchParams
+  const profile = { id: ctx.userId, rol: ctx.rol }
+  const user = { id: ctx.userId }
 
   // Determinar áreas permitidas
   let areasQuery = adminSupabase.from('areas').select('*').eq('activa', true).order('nombre')

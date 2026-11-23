@@ -8,6 +8,7 @@ import { emailOrdenEnviadaLab, emailLaboratorioConfirmoRecepcion, emailOrdenList
 import { uploadFile, MINIO_BUCKET, buildOrdenDocKey } from '@/lib/minio/client'
 import type { OrdenEstado, ModoGestion } from '@/types/database'
 import { sanitizarPiezas, calcularDenticion, resumenPiezasTexto, type Denticion } from '@/lib/odontograma'
+import { getUserAuthContext } from '@/lib/rbac-server'
 
 // ─── Reusable: Get current user profile ──────────────────────────────────────
 async function getCurrentUser() {
@@ -33,6 +34,10 @@ async function getClientIp(): Promise<string | null> {
 // ─── CREATE ORDEN ─────────────────────────────────────────────────────────────
 export async function crearOrdenAction(formData: FormData) {
   try {
+    const ctx = await getUserAuthContext()
+    if (!ctx || !ctx.can('ordenes.crear')) {
+      return { success: false, error: 'No tiene permiso para crear solicitudes de prótesis' }
+    }
     const { user, profile, supabase } = await getCurrentUser()
   const ip = await getClientIp()
   const adminSupabase = await createAdminClient()
@@ -259,6 +264,10 @@ export async function cambiarEstadoOrdenAction(
   modo: ModoGestion,
   fechaEstimada?: string
 ) {
+  const ctx = await getUserAuthContext()
+  if (!ctx || !ctx.can('ordenes.cambiar_estado')) {
+    throw new Error('No tiene permiso para cambiar el estado de órdenes protésicas')
+  }
   const { user, profile, supabase } = await getCurrentUser()
   const ip = await getClientIp()
 

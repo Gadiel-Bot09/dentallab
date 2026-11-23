@@ -78,12 +78,6 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/externo/ordenes', request.url))
   }
 
-  // ── Admin-only routes
-  const adminOnlyPaths = ['/usuarios', '/reportes/auditoria']
-  if (adminOnlyPaths.some((p) => pathname.startsWith(p)) && userRol !== 'admin') {
-    return NextResponse.redirect(new URL('/dashboard?error=sin_permiso', request.url))
-  }
-
   // ── Root redirect
   if (pathname === '/') {
     return NextResponse.redirect(new URL(ROLE_HOME[userRol], request.url))

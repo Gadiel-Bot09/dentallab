@@ -1,119 +1,170 @@
 // src/app/(interno)/usuarios/page.tsx
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { getUserAuthContext } from '@/lib/rbac-server'
+import {
+  DEFAULT_ROLE_PERMISSIONS,
+  type PermisoCodigo,
+  type RolColor,
+  type RolConPermisos,
+  type UsuarioPermisoOverride,
+} from '@/lib/rbac'
+import { ROL_LABELS, type UserRol } from '@/types/database'
+import UsuariosGestionClient from './_components/UsuariosGestionClient'
+import type { UsuarioRowData } from './_components/ModalUsuarioEditor'
 
 export const metadata: Metadata = {
-  title: 'Usuarios — DentalLab Manager',
+  title: 'Usuarios, Roles y Permisos — DentalLab Manager',
 }
 
-export default async function UsuariosPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>
-}) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+function buildFallbackRoles(): RolConPermisos[] {
+  const baseDefs: { codigo: UserRol; color: RolColor; home: string; desc: string }[] = [
+    { codigo: 'admin', color: 'sky', home: '/dashboard', desc: 'Acceso total al sistema' },
+    { codigo: 'farmacia', color: 'emerald', home: '/solicitudes', desc: 'Gestión de farmacia, stock y despachos' },
+    { codigo: 'jefe_area', color: 'amber', home: '/solicitudes', desc: 'Solicitudes de insumos y devoluciones por área' },
+    { codigo: 'odontologo', color: 'indigo', home: '/dashboard', desc: 'Órdenes protésicas con odontograma y pacientes' },
+    { codigo: 'auxiliar', color: 'violet', home: '/dashboard', desc: 'Apoyo clínico, solicitudes y laboratorio' },
+    { codigo: 'recepcionista', color: 'rose', home: '/dashboard', desc: 'Recepción, pacientes y seguimiento' },
+    { codigo: 'laboratorio', color: 'slate', home: '/externo/ordenes', desc: 'Portal externo de laboratorio aliado' },
+  ]
+  return baseDefs.map((b) => ({
+    id: b.codigo,
+    codigo: b.codigo,
+    nombre: ROL_LABELS[b.codigo] || b.codigo,
+    descripcion: b.desc,
+    color: b.color,
+    es_sistema: true,
+    rol_base: b.codigo,
+    home_path: b.home,
+    activo: true,
+    permisos: DEFAULT_ROLE_PERMISSIONS[b.codigo] || [],
+    usuarios_count: 0,
+  }))
+}
 
-  const { data: profile } = await supabase
-    .from('usuarios')
-    .select('rol')
-    .eq('id', user.id)
-    .single()
+export default async function UsuariosPage() {
+  const ctx = await getUserAuthContext()
+  if (!ctx) redirect('/login')
 
-  if (profile?.rol !== 'admin') redirect('/dashboard')
-
-  const params = await searchParams
-  const q = params.q ?? ''
-
-  let query = supabase
-    .from('usuarios')
-    .select('*, laboratorios(nombre)')
-    .order('created_at', { ascending: false })
-    .limit(200)
-
-  if (q) {
-    query = query.or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%,email.ilike.%${q}%`)
+  if (!ctx.canAny(['usuarios.ver', 'usuarios.gestionar', 'roles.gestionar'])) {
+    redirect('/dashboard?error=sin_permiso')
   }
 
-  const { data: usuarios } = await query
+  const admin = await createAdminClient()
+
+  const [
+    usuariosRes,
+    areasRes,
+    farmaciasRes,
+    laboratoriosRes,
+    userAreasRes,
+    userFarmaciasRes,
+    rolesRes,
+    rolPermisosRes,
+    userPermisosRes,
+  ] = await Promise.all([
+    admin
+      .from('usuarios')
+      .select('*, laboratorios(nombre)')
+      .order('created_at', { ascending: false })
+      .limit(300),
+    admin.from('areas').select('id, codigo, nombre').eq('activa', true).order('nombre'),
+    admin.from('farmacias').select('id, codigo, nombre').eq('activa', true).order('nombre'),
+    admin.from('laboratorios').select('id, nombre').order('nombre'),
+    admin.from('usuario_areas').select('usuario_id, area_id'),
+    admin.from('usuario_farmacias').select('usuario_id, farmacia_id'),
+    admin.from('roles').select('*').order('es_sistema', { ascending: false }).order('nombre'),
+    admin.from('rol_permisos').select('rol_id, permiso_codigo'),
+    admin.from('usuario_permisos').select('usuario_id, permiso_codigo, concedido'),
+  ])
+
+  const rbacMigrationReady = !rolesRes.error && Array.isArray(rolesRes.data) && rolesRes.data.length > 0
+
+  // Mapear áreas y farmacias por usuario
+  const areasByUser = new Map<string, string[]>()
+  for (const row of userAreasRes.data || []) {
+    const arr = areasByUser.get(row.usuario_id) || []
+    arr.push(row.area_id)
+    areasByUser.set(row.usuario_id, arr)
+  }
+
+  const farmaciasByUser = new Map<string, string[]>()
+  for (const row of userFarmaciasRes.data || []) {
+    const arr = farmaciasByUser.get(row.usuario_id) || []
+    arr.push(row.farmacia_id)
+    farmaciasByUser.set(row.usuario_id, arr)
+  }
+
+  const overridesByUser = new Map<string, UsuarioPermisoOverride[]>()
+  for (const row of userPermisosRes.data || []) {
+    const arr = overridesByUser.get(row.usuario_id) || []
+    arr.push({
+      permiso_codigo: row.permiso_codigo as PermisoCodigo,
+      concedido: Boolean(row.concedido),
+    })
+    overridesByUser.set(row.usuario_id, arr)
+  }
+
+  const usuarios: UsuarioRowData[] = (usuariosRes.data || []).map((u: any) => ({
+    id: u.id,
+    nombre: u.nombre,
+    apellido: u.apellido,
+    email: u.email,
+    rol: u.rol,
+    rol_id: u.rol_id ?? null,
+    activo: Boolean(u.activo),
+    laboratorio_id: u.laboratorio_id ?? null,
+    laboratorio_nombre: u.laboratorios?.nombre ?? null,
+    created_at: u.created_at,
+    area_ids: areasByUser.get(u.id) || [],
+    farmacia_ids: farmaciasByUser.get(u.id) || [],
+    overrides: overridesByUser.get(u.id) || [],
+  }))
+
+  // Construir roles con permisos y conteo de usuarios
+  let roles: RolConPermisos[]
+  if (rbacMigrationReady) {
+    const permsByRol = new Map<string, PermisoCodigo[]>()
+    for (const rp of rolPermisosRes.data || []) {
+      const arr = permsByRol.get(rp.rol_id) || []
+      arr.push(rp.permiso_codigo as PermisoCodigo)
+      permsByRol.set(rp.rol_id, arr)
+    }
+
+    roles = (rolesRes.data || []).map((r: any) => ({
+      id: r.id,
+      codigo: r.codigo,
+      nombre: r.nombre,
+      descripcion: r.descripcion,
+      color: (r.color || 'sky') as RolColor,
+      es_sistema: Boolean(r.es_sistema),
+      rol_base: r.rol_base as UserRol,
+      home_path: r.home_path || '/dashboard',
+      activo: Boolean(r.activo),
+      permisos: permsByRol.get(r.id) || [],
+      usuarios_count: usuarios.filter((u) => u.rol_id === r.id || (!u.rol_id && u.rol === r.codigo)).length,
+    }))
+  } else {
+    roles = buildFallbackRoles().map((r) => ({
+      ...r,
+      usuarios_count: usuarios.filter((u) => u.rol === r.codigo).length,
+    }))
+  }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Gestión de Usuarios</h1>
-          <p className="text-slate-400 text-sm">{usuarios?.length ?? 0} usuario(s) encontrado(s)</p>
-        </div>
-        <Link
-          href="/usuarios/nuevo"
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-sky-500/20 transition-all duration-200"
-        >
-          + Nuevo Usuario
-        </Link>
-      </div>
-
-      <form method="GET">
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Buscar por nombre, apellido o email..."
-          className="w-full max-w-md px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40"
-        />
-      </form>
-
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-        {!usuarios || usuarios.length === 0 ? (
-          <div className="px-6 py-16 text-center text-slate-500">
-            <p className="text-4xl mb-3">👥</p>
-            <p className="font-medium">No se encontraron usuarios</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-800 text-left">
-                  {['Usuario', 'Email', 'Rol', 'Clínica/Laboratorio', 'Estado', 'Registro'].map((h) => (
-                    <th key={h} className="px-5 py-3 text-slate-400 font-medium text-xs uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/50">
-                {usuarios.map((u: any) => (
-                  <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-5 py-3">
-                      <p className="text-white font-medium">{u.nombre} {u.apellido}</p>
-                    </td>
-                    <td className="px-5 py-3 text-slate-400">{u.email}</td>
-                    <td className="px-5 py-3">
-                      <span className="inline-flex items-center px-2.5 py-1 bg-sky-500/10 text-sky-400 rounded-lg text-xs font-medium border border-sky-500/20 capitalize">
-                        {u.rol}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-slate-400">
-                      {u.laboratorios?.nombre || '—'}
-                    </td>
-                    <td className="px-5 py-3">
-                      {u.activo ? (
-                        <span className="text-green-400 font-medium text-xs">Activo</span>
-                      ) : (
-                        <span className="text-slate-500 font-medium text-xs">Inactivo</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3 text-slate-500 text-xs">
-                      {format(new Date(u.created_at), 'dd/MM/yyyy', { locale: es })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+    <div className="max-w-7xl mx-auto">
+      <UsuariosGestionClient
+        usuarios={usuarios}
+        roles={roles}
+        areas={areasRes.data || []}
+        farmacias={farmaciasRes.data || []}
+        laboratorios={laboratoriosRes.data || []}
+        currentUserId={ctx.userId}
+        canManageUsers={ctx.can('usuarios.gestionar')}
+        canManageRoles={ctx.can('roles.gestionar')}
+        rbacMigrationReady={rbacMigrationReady}
+      />
     </div>
   )
 }

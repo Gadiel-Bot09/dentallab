@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import type { Metadata } from 'next'
+import { getUserAuthContext } from '@/lib/rbac-server'
 import { ORDEN_ESTADO_LABELS, ORDEN_ESTADO_COLORS } from '@/types/database'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -24,9 +25,12 @@ function fmtCOP(v: number) {
 }
 
 export default async function OrdenDetallePage({ params }: { params: Promise<{ id: string }> }) {
+  const ctx = await getUserAuthContext()
+  if (!ctx) redirect('/login')
+  if (!ctx.canAny(['ordenes.ver', 'ordenes.crear'])) redirect('/dashboard?error=sin_permiso')
+
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const user = { id: ctx.userId }
 
   const { id } = await params
 
@@ -67,7 +71,8 @@ export default async function OrdenDetallePage({ params }: { params: Promise<{ i
         .single(),
     ])
 
-  const isLab = profile?.rol === 'laboratorio'
+  const canSeeFinancials = ctx.can('ordenes.ver_financiero')
+  const canChangeStatus = ctx.can('ordenes.cambiar_estado')
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -210,7 +215,7 @@ export default async function OrdenDetallePage({ params }: { params: Promise<{ i
           )}
 
           {/* Financials */}
-          {!isLab && (
+          {canSeeFinancials && (
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
               <h2 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Rentabilidad</h2>
               <div className="grid grid-cols-3 gap-3 text-sm">
@@ -239,12 +244,14 @@ export default async function OrdenDetallePage({ params }: { params: Promise<{ i
         {/* Side panels */}
         <div className="space-y-5">
           {/* State transition */}
-          <CambiarEstadoPanel
-            ordenId={id}
-            estadoActual={orden.estado}
-            userRol={profile?.rol ?? 'auxiliar'}
-            modoGestionActual={orden.modo_gestion}
-          />
+          {canChangeStatus && (
+            <CambiarEstadoPanel
+              ordenId={id}
+              estadoActual={orden.estado}
+              userRol={profile?.rol ?? 'auxiliar'}
+              modoGestionActual={orden.modo_gestion}
+            />
+          )}
 
           {/* Timeline */}
           <TimelineEventos eventos={eventos ?? []} />

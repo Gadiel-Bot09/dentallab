@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
+import { getUserAuthContext } from '@/lib/rbac-server'
 import NuevaOrdenForm from './_components/NuevaOrdenForm'
 
 export const metadata: Metadata = {
@@ -9,9 +10,11 @@ export const metadata: Metadata = {
 }
 
 export default async function NuevaOrdenPage() {
+  const ctx = await getUserAuthContext()
+  if (!ctx) redirect('/login')
+  if (!ctx.can('ordenes.crear')) redirect('/ordenes?error=sin_permiso')
+
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
   const [
     { data: pacientes },

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { getUserAuthContext } from '@/lib/rbac-server'
 import OrdenesTable from './_components/OrdenesTable'
 import { ORDEN_ESTADO_LABELS, type OrdenEstado } from '@/types/database'
 
@@ -15,9 +16,11 @@ export default async function OrdenesPage({
 }: {
   searchParams: Promise<{ estado?: string; q?: string; radicado?: string; lab?: string }>
 }) {
+  const ctx = await getUserAuthContext()
+  if (!ctx) redirect('/login')
+  if (!ctx.canAny(['ordenes.ver', 'ordenes.crear'])) redirect('/dashboard?error=sin_permiso')
+
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
   const params = await searchParams
   const estadoFiltro = params.estado as OrdenEstado | undefined
@@ -52,13 +55,15 @@ export default async function OrdenesPage({
           <h1 className="text-2xl font-bold text-white">Órdenes de Servicio</h1>
           <p className="text-slate-400 text-sm">{ordenes?.length ?? 0} resultado(s) encontrado(s)</p>
         </div>
-        <Link
-          id="btn-nueva-orden"
-          href="/ordenes/nueva"
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-sky-500/20 transition-all duration-200"
-        >
-          <span>+</span> Nueva Orden
-        </Link>
+        {ctx.can('ordenes.crear') && (
+          <Link
+            id="btn-nueva-orden"
+            href="/ordenes/nueva"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-sky-500/20 transition-all duration-200"
+          >
+            <span>+</span> Nueva Orden
+          </Link>
+        )}
       </div>
 
       {/* Filters */}

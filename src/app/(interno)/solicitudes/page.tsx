@@ -1,10 +1,11 @@
 // src/app/(interno)/solicitudes/page.tsx
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { getUserAuthContext } from '@/lib/rbac-server'
 import {
   SOLICITUD_ESTADO_LABELS,
   SOLICITUD_ESTADO_COLORS,
@@ -36,9 +37,11 @@ function fmtCOP(v: number) {
 }
 
 export default async function SolicitudesPage({ searchParams }: PageProps) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const ctx = await getUserAuthContext()
+  if (!ctx) redirect('/login')
+  if (!ctx.canAny(['solicitudes.ver', 'solicitudes.crear'])) {
+    redirect('/dashboard?error=sin_permiso')
+  }
 
   const adminSupabase = await createAdminClient()
   const sp = await searchParams
@@ -115,13 +118,15 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
             Pedidos de materiales de las áreas a farmacia, control de despachos y recepciones.
           </p>
         </div>
-        <Link
-          href="/solicitudes/nueva"
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-medium text-sm rounded-xl shadow-lg shadow-sky-500/20 transition-all"
-        >
-          <span>➕</span>
-          <span>Nueva Solicitud</span>
-        </Link>
+        {ctx.can('solicitudes.crear') && (
+          <Link
+            href="/solicitudes/nueva"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-medium text-sm rounded-xl shadow-lg shadow-sky-500/20 transition-all"
+          >
+            <span>➕</span>
+            <span>Nueva Solicitud</span>
+          </Link>
+        )}
       </div>
 
       {/* Mini KPIs */}

@@ -1,9 +1,10 @@
 // src/app/(interno)/farmacia/stock/page.tsx
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import type { Farmacia } from '@/types/database'
 import type { Proveedor, RecepcionFarmacia } from '@/types/farmacia'
+import { getUserAuthContext } from '@/lib/rbac-server'
 import StockFarmaciaClient from './_components/StockFarmaciaClient'
 
 export const metadata: Metadata = {
@@ -15,16 +16,13 @@ interface PageProps {
 }
 
 export default async function StockFarmaciaPage({ searchParams }: PageProps) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const ctx = await getUserAuthContext()
+  if (!ctx) redirect('/login')
+  if (!ctx.canAny(['farmacia.stock_ver', 'farmacia.recepcion_registrar'])) {
+    redirect('/dashboard?error=sin_permiso')
+  }
 
-  const { data: profile } = await supabase
-    .from('usuarios')
-    .select('id, rol')
-    .eq('id', user.id)
-    .single()
-
+  const profile = { id: ctx.userId, rol: ctx.rol }
   const adminSupabase = await createAdminClient()
 
   // Cargar farmacias activas
@@ -176,7 +174,11 @@ export default async function StockFarmaciaPage({ searchParams }: PageProps) {
     }
   })
 
-  const userCanManage = profile?.rol === 'admin' || profile?.rol === 'farmacia'
+  const userCanManage = ctx.canAny([
+    'farmacia.recepcion_registrar',
+    'farmacia.ajustar_stock',
+    'farmacia.lotes_gestionar',
+  ])
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
