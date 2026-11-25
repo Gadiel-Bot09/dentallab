@@ -258,6 +258,32 @@ export async function crearInsumoRapidoAction(input: {
   }
 }
 
+export async function obtenerCatalogosInsumoAction(): Promise<{
+  success: boolean
+  categorias?: { id: string; nombre: string }[]
+  unidades?: { id: string; nombre: string; abreviatura?: string | null }[]
+  error?: string
+}> {
+  try {
+    const ctx = await getUserAuthContext()
+    if (!ctx) return { success: false, error: 'No autenticado' }
+
+    const admin = await createAdminClient()
+    const [{ data: categorias }, { data: unidades }] = await Promise.all([
+      admin.from('categorias_inventario').select('id, nombre').eq('activa', true).order('nombre'),
+      admin.from('unidades_medida').select('id, nombre, abreviatura').eq('activa', true).order('nombre'),
+    ])
+
+    return {
+      success: true,
+      categorias: categorias || [],
+      unidades: unidades || [],
+    }
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Error cargando catálogos' }
+  }
+}
+
 export async function registrarRecepcionNormativaAction(
   payload: RecepcionNormativaInput
 ): Promise<{

@@ -1,27 +1,20 @@
 'use client'
 // src/app/(interno)/farmacia/stock/_components/ModalRecepcionNormativa.tsx
-import { useState, useTransition, useMemo, useRef } from 'react'
+import { useState, useTransition, useMemo, useRef, useEffect } from 'react'
 import type { Farmacia } from '@/types/database'
 import {
-  CLASIFICACION_RIESGO_LABELS,
   CONDICION_ALMACENAMIENTO_LABELS,
   DICTAMEN_TECNICO_LABELS,
   TIPO_DOC_RECEPCION_LABELS,
   evaluarVencimiento,
-  type ClasificacionRiesgo,
   type CondicionAlmacenamiento,
   type DictamenTecnico,
   type Proveedor,
   type TipoDocumentoRecepcion,
 } from '@/types/farmacia'
 import InsumoSearchSelect, { type MaterialSearchOption } from '@/app/(interno)/_components/InsumoSearchSelect'
+import CrearInsumoRapidoModal, { type CrearInsumoInitialData } from '@/components/modals/CrearInsumoRapidoModal'
 import {
-  TIPOS_ITEM_INVENTARIO,
-  TIPOS_ITEM_ORDEN,
-  type TipoItemInventario,
-} from '@/lib/inventario-tipos'
-import {
-  crearInsumoRapidoAction,
   crearProveedorAction,
   obtenerDetalleRecepcionAction,
   registrarRecepcionNormativaAction,
@@ -124,24 +117,8 @@ export default function ModalRecepcionNormativa({
   const [nuevoInsumoModal, setNuevoInsumoModal] = useState<{
     open: boolean
     targetRowIdx: number
+    initialData?: CrearInsumoInitialData
   }>({ open: false, targetRowIdx: 0 })
-  const [nuevoInsumoErr, setNuevoInsumoErr] = useState<string | null>(null)
-  const [savingInsumo, setSavingInsumo] = useState(false)
-  const [nuevoInsumoForm, setNuevoInsumoForm] = useState({
-    nombre: '',
-    tipo_item: 'insumo' as TipoItemInventario,
-    categoria_id: categorias[0]?.id || '',
-    unidad_medida_id: unidades[0]?.id || '',
-    codigo_barras: '',
-    registro_sanitario: '',
-    clasificacion_riesgo: 'insumo_general' as ClasificacionRiesgo,
-    laboratorio_fabricante: '',
-    presentacion_comercial: '',
-    condiciones_almacenamiento: 'ambiente' as CondicionAlmacenamiento,
-    iva_porcentaje: 0,
-    requiere_lote: true,
-    requiere_vencimiento: true,
-  })
 
   // Proveedores
   const [proveedores, setProveedores] = useState<Proveedor[]>(initialProveedores)
@@ -297,65 +274,40 @@ export default function ModalRecepcionNormativa({
 
   function openCrearInsumo(rowIdx: number, initialName = '', initialBarcode = '') {
     const currentRow = rows[rowIdx]
-    setNuevoInsumoErr(null)
-    setNuevoInsumoForm({
-      nombre: initialName,
-      tipo_item: 'insumo',
-      categoria_id: categorias[0]?.id || '',
-      unidad_medida_id: unidades[0]?.id || '',
-      codigo_barras: initialBarcode || currentRow?.codigo_barras || '',
-      registro_sanitario: currentRow?.registro_sanitario || '',
-      clasificacion_riesgo: 'insumo_general',
-      laboratorio_fabricante: currentRow?.laboratorio_fabricante || '',
-      presentacion_comercial: currentRow?.presentacion || '',
-      condiciones_almacenamiento: currentRow?.condiciones_almacenamiento || 'ambiente',
-      iva_porcentaje: currentRow?.iva_porcentaje ?? 0,
-      requiere_lote: true,
-      requiere_vencimiento: true,
+    setNuevoInsumoModal({
+      open: true,
+      targetRowIdx: rowIdx,
+      initialData: {
+        nombre: initialName,
+        tipo_item: 'insumo',
+        codigo_barras: initialBarcode || currentRow?.codigo_barras || '',
+        registro_sanitario: currentRow?.registro_sanitario || '',
+        laboratorio_fabricante: currentRow?.laboratorio_fabricante || '',
+        presentacion_comercial: currentRow?.presentacion || '',
+        condiciones_almacenamiento: currentRow?.condiciones_almacenamiento || 'ambiente',
+        iva_porcentaje: currentRow?.iva_porcentaje ?? 0,
+      },
     })
-    setNuevoInsumoModal({ open: true, targetRowIdx: rowIdx })
   }
 
-  async function handleGuardarNuevoInsumo(e: React.FormEvent) {
-    e.preventDefault()
-    setNuevoInsumoErr(null)
-    if (!nuevoInsumoForm.nombre.trim()) {
-      setNuevoInsumoErr('El nombre del insumo es obligatorio')
-      return
-    }
-    if (!nuevoInsumoForm.categoria_id) {
-      setNuevoInsumoErr('Selecciona una categoría')
-      return
-    }
-    if (!nuevoInsumoForm.unidad_medida_id) {
-      setNuevoInsumoErr('Selecciona una unidad de medida')
-      return
-    }
+  // Atajo Alt + N o F2 dentro del modal de recepción -> abre registro rápido para la fila libre actual
+  useEffect(() => {
+    function handleRecepcionKeyDown(e: KeyboardEvent) {
+      if (nuevoInsumoModal.open || completedActa) return
+      const isAltN = e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'n'
+      const isF2 = e.key === 'F2' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey
+      if (!isAltN && !isF2) return
 
-    setSavingInsumo(true)
-    const res = await crearInsumoRapidoAction({
-      nombre: nuevoInsumoForm.nombre.trim(),
-      tipo_item: nuevoInsumoForm.tipo_item,
-      categoria_id: nuevoInsumoForm.categoria_id,
-      unidad_medida_id: nuevoInsumoForm.unidad_medida_id,
-      codigo_barras: nuevoInsumoForm.codigo_barras.trim() || undefined,
-      registro_sanitario: nuevoInsumoForm.registro_sanitario.trim() || undefined,
-      clasificacion_riesgo: nuevoInsumoForm.clasificacion_riesgo,
-      laboratorio_fabricante: nuevoInsumoForm.laboratorio_fabricante.trim() || undefined,
-      presentacion_comercial: nuevoInsumoForm.presentacion_comercial.trim() || undefined,
-      condiciones_almacenamiento: nuevoInsumoForm.condiciones_almacenamiento,
-      iva_porcentaje: Number(nuevoInsumoForm.iva_porcentaje) || 0,
-      requiere_lote: nuevoInsumoForm.requiere_lote,
-      requiere_vencimiento: nuevoInsumoForm.requiere_vencimiento,
-    })
-    setSavingInsumo(false)
-
-    if (!res.success || !res.data) {
-      setNuevoInsumoErr(res.error || 'No se pudo registrar el insumo')
-      return
+      e.preventDefault()
+      const emptyIdx = rows.findIndex((r) => !r.material_id)
+      openCrearInsumo(emptyIdx >= 0 ? emptyIdx : rows.length - 1)
     }
+    window.addEventListener('keydown', handleRecepcionKeyDown)
+    return () => window.removeEventListener('keydown', handleRecepcionKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nuevoInsumoModal.open, completedActa, rows])
 
-    const created = res.data
+  function handleInsumoCreated(created: MaterialSearchOption) {
     setMaterials((prev) =>
       [...prev, created].sort((a, b) => a.nombre.localeCompare(b.nombre))
     )
@@ -388,7 +340,6 @@ export default function ModalRecepcionNormativa({
       type: 'ok',
       text: `Nuevo insumo creado y seleccionado: ${created.codigo} — ${created.nombre}`,
     })
-    setNuevoInsumoModal({ open: false, targetRowIdx: 0 })
   }
 
   async function handleCrearProveedor() {
@@ -564,7 +515,10 @@ export default function ModalRecepcionNormativa({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div
+      data-recepcion-modal-open="true"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
+    >
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-6xl shadow-2xl flex flex-col max-h-[94vh]">
         {/* Header fijo */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 shrink-0">
@@ -880,9 +834,13 @@ export default function ModalRecepcionNormativa({
                     const emptyIdx = rows.findIndex((r) => !r.material_id)
                     openCrearInsumo(emptyIdx >= 0 ? emptyIdx : 0)
                   }}
-                  className="px-3 py-1.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 border border-sky-500/30 rounded-lg text-xs font-semibold transition-colors"
+                  title="Atajo de teclado: Alt + N o F2"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 border border-sky-500/30 rounded-lg text-xs font-semibold transition-colors"
                 >
-                  + Nuevo Insumo
+                  <span>+ Nuevo Insumo</span>
+                  <kbd className="px-1 py-0.5 rounded bg-slate-950/90 border border-sky-500/30 text-[10px] font-mono text-sky-300">
+                    Alt+N
+                  </kbd>
                 </button>
                 <button
                   type="button"
@@ -1301,297 +1259,16 @@ export default function ModalRecepcionNormativa({
         </div>
       </div>
 
-      {/* SUB-MODAL: CREACIÓN RÁPIDA DE NUEVO INSUMO EN CATÁLOGO */}
-      {nuevoInsumoModal.open && (
-        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-sky-500/30 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-950/70">
-              <div>
-                <h4 className="text-base font-bold text-white flex items-center gap-2">
-                  <span>✨</span>
-                  <span>Registrar Nuevo Insumo en Catálogo</span>
-                </h4>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Se generará automáticamente su código{' '}
-                  <span className="font-mono font-bold text-emerald-400">
-                    {TIPOS_ITEM_INVENTARIO[nuevoInsumoForm.tipo_item].prefijo}-XXXX
-                  </span>{' '}
-                  y quedará seleccionado en la fila #{nuevoInsumoModal.targetRowIdx + 1}.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setNuevoInsumoModal({ open: false, targetRowIdx: 0 })}
-                className="text-slate-500 hover:text-white p-1"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleGuardarNuevoInsumo} className="p-5 overflow-y-auto space-y-4">
-              {nuevoInsumoErr && (
-                <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl">
-                  ⚠️ {nuevoInsumoErr}
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                    Tipo de Registro y Prefijo de Código <span className="text-red-400">*</span>
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {TIPOS_ITEM_ORDEN.map((t) => {
-                      const meta = TIPOS_ITEM_INVENTARIO[t]
-                      const active = nuevoInsumoForm.tipo_item === t
-                      return (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() =>
-                            setNuevoInsumoForm({
-                              ...nuevoInsumoForm,
-                              tipo_item: t,
-                              clasificacion_riesgo:
-                                t === 'medicamento'
-                                  ? 'medicamento'
-                                  : nuevoInsumoForm.clasificacion_riesgo === 'medicamento'
-                                  ? 'insumo_general'
-                                  : nuevoInsumoForm.clasificacion_riesgo,
-                            })
-                          }
-                          className={`p-2.5 rounded-xl border text-left transition-all ${
-                            active
-                              ? meta.activeCardClass
-                              : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-sm">{meta.icono}</span>
-                            <span className="font-mono text-[10px] font-bold opacity-90">
-                              {meta.ejemplo}
-                            </span>
-                          </div>
-                          <p className="text-xs font-semibold mt-1 leading-tight">{meta.corto}</p>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Nombre del Insumo / Medicamento <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    autoFocus
-                    value={nuevoInsumoForm.nombre}
-                    onChange={(e) => setNuevoInsumoForm({ ...nuevoInsumoForm, nombre: e.target.value })}
-                    placeholder="Ej: Anestesia Lidocaína 2% con Epinefrina, Guantes Nitrilo M..."
-                    className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Categoría <span className="text-red-400">*</span>
-                  </label>
-                  <select
-                    required
-                    value={nuevoInsumoForm.categoria_id}
-                    onChange={(e) => setNuevoInsumoForm({ ...nuevoInsumoForm, categoria_id: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                  >
-                    <option value="">-- Seleccionar categoría --</option>
-                    {categorias.map((c) => (
-                      <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Unidad de Medida <span className="text-red-400">*</span>
-                  </label>
-                  <select
-                    required
-                    value={nuevoInsumoForm.unidad_medida_id}
-                    onChange={(e) => setNuevoInsumoForm({ ...nuevoInsumoForm, unidad_medida_id: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                  >
-                    <option value="">-- Seleccionar unidad --</option>
-                    {unidades.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.nombre}{u.abreviatura ? ` (${u.abreviatura})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Código de Barras (EAN / GS1)
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevoInsumoForm.codigo_barras}
-                    onChange={(e) => setNuevoInsumoForm({ ...nuevoInsumoForm, codigo_barras: e.target.value })}
-                    placeholder="Ej: 7701234567890"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs font-mono text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Registro Sanitario INVIMA
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevoInsumoForm.registro_sanitario}
-                    onChange={(e) => setNuevoInsumoForm({ ...nuevoInsumoForm, registro_sanitario: e.target.value })}
-                    placeholder="Ej: INVIMA 2023DM-0025142"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Clasificación de Riesgo
-                  </label>
-                  <select
-                    value={nuevoInsumoForm.clasificacion_riesgo}
-                    onChange={(e) =>
-                      setNuevoInsumoForm({
-                        ...nuevoInsumoForm,
-                        clasificacion_riesgo: e.target.value as ClasificacionRiesgo,
-                      })
-                    }
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                  >
-                    {Object.entries(CLASIFICACION_RIESGO_LABELS).map(([k, label]) => (
-                      <option key={k} value={k}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Fabricante / Marca
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevoInsumoForm.laboratorio_fabricante}
-                    onChange={(e) =>
-                      setNuevoInsumoForm({ ...nuevoInsumoForm, laboratorio_fabricante: e.target.value })
-                    }
-                    placeholder="Ej: 3M ESPE, Septodont"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Presentación Comercial
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevoInsumoForm.presentacion_comercial}
-                    onChange={(e) =>
-                      setNuevoInsumoForm({ ...nuevoInsumoForm, presentacion_comercial: e.target.value })
-                    }
-                    placeholder="Ej: Caja x 50, Jeringa x 4g"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Condición de Almacenamiento
-                  </label>
-                  <select
-                    value={nuevoInsumoForm.condiciones_almacenamiento}
-                    onChange={(e) =>
-                      setNuevoInsumoForm({
-                        ...nuevoInsumoForm,
-                        condiciones_almacenamiento: e.target.value as CondicionAlmacenamiento,
-                      })
-                    }
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                  >
-                    {Object.entries(CONDICION_ALMACENAMIENTO_LABELS).map(([k, label]) => (
-                      <option key={k} value={k}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Tarifa IVA por defecto
-                  </label>
-                  <select
-                    value={nuevoInsumoForm.iva_porcentaje}
-                    onChange={(e) =>
-                      setNuevoInsumoForm({
-                        ...nuevoInsumoForm,
-                        iva_porcentaje: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                  >
-                    <option value={0}>0% (Exento / Excluido)</option>
-                    <option value={5}>5% (Tarifa reducida)</option>
-                    <option value={19}>19% (Tarifa general)</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col justify-center gap-1.5 pt-1">
-                  <label className="inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={nuevoInsumoForm.requiere_lote}
-                      onChange={(e) =>
-                        setNuevoInsumoForm({ ...nuevoInsumoForm, requiere_lote: e.target.checked })
-                      }
-                      className="rounded border-slate-600 bg-slate-900 text-sky-500"
-                    />
-                    <span>Exigir número de lote</span>
-                  </label>
-                  <label className="inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={nuevoInsumoForm.requiere_vencimiento}
-                      onChange={(e) =>
-                        setNuevoInsumoForm({ ...nuevoInsumoForm, requiere_vencimiento: e.target.checked })
-                      }
-                      className="rounded border-slate-600 bg-slate-900 text-sky-500"
-                    />
-                    <span>Exigir fecha de vencimiento</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setNuevoInsumoModal({ open: false, targetRowIdx: 0 })}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-xl"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingInsumo}
-                  className="px-5 py-2 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-lg shadow-sky-600/20"
-                >
-                  {savingInsumo ? 'Registrando...' : 'Crear y Seleccionar Insumo'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* SUB-MODAL: CREACIÓN RÁPIDA DE NUEVO INSUMO EN CATÁLOGO (Atajo Alt+N / F2) */}
+      <CrearInsumoRapidoModal
+        isOpen={nuevoInsumoModal.open}
+        onClose={() => setNuevoInsumoModal({ open: false, targetRowIdx: 0 })}
+        onCreated={handleInsumoCreated}
+        categorias={categorias}
+        unidades={unidades}
+        initialData={nuevoInsumoModal.initialData}
+        targetRowLabel={`fila #${nuevoInsumoModal.targetRowIdx + 1}`}
+      />
     </div>
   )
 }

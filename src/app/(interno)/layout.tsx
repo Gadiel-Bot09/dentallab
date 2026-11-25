@@ -26,6 +26,7 @@ export default async function InternoLayout({ children }: { children: ReactNode 
             rol: ctx.rol,
             email: ctx.email,
           }}
+          canCreateInsumo={ctx.canAny(['inventario.gestionar', 'farmacia.recepcion_registrar'])}
         />
         <main className="flex-1 overflow-y-auto bg-slate-950 p-6">
           {children}
