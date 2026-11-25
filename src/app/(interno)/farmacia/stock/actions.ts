@@ -3,6 +3,8 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { registrarAuditLog } from '@/lib/audit/logger'
+import { getUserAuthContext } from '@/lib/rbac-server'
+import { TIPOS_ITEM_INVENTARIO, type TipoItemInventario } from '@/lib/inventario-tipos'
 import type { MaterialSearchOption } from '@/app/(interno)/_components/InsumoSearchSelect'
 import type {
   ClasificacionRiesgo,
@@ -115,6 +117,7 @@ export async function crearProveedorAction(input: {
 
 export async function crearInsumoRapidoAction(input: {
   nombre: string
+  tipo_item?: TipoItemInventario
   categoria_id: string
   unidad_medida_id: string
   descripcion?: string
@@ -131,17 +134,10 @@ export async function crearInsumoRapidoAction(input: {
   requiere_vencimiento?: boolean
 }): Promise<{ success: boolean; data?: MaterialSearchOption; error?: string }> {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: 'No autenticado' }
+    const ctx = await getUserAuthContext()
+    if (!ctx) return { success: false, error: 'No autenticado' }
 
-    const { data: profile } = await supabase
-      .from('usuarios')
-      .select('id, rol')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'farmacia'].includes(profile.rol)) {
+    if (!ctx.canAny(['inventario.gestionar', 'farmacia.recepcion_registrar'])) {
       return { success: false, error: 'No tiene permisos para registrar nuevos insumos en el catálogo' }
     }
 
@@ -150,17 +146,42 @@ export async function crearInsumoRapidoAction(input: {
     if (!input.categoria_id) return { success: false, error: 'Debe seleccionar una categoría' }
     if (!input.unidad_medida_id) return { success: false, error: 'Debe seleccionar una unidad de medida' }
 
+    const tipoItem: TipoItemInventario =
+      input.tipo_item === 'medicamento' || input.tipo_item === 'material' || input.tipo_item === 'insumo'
+        ? input.tipo_item
+        : input.clasificacion_riesgo === 'medicamento'
+        ? 'medicamento'
+        : 'insumo'
+
     const admin = await createAdminClient()
 
-    // Autogenerar código MAT-XXXX
-    const { data: generatedCode, error: codeErr } = await admin.rpc('generate_material_code')
-    if (codeErr || !generatedCode) {
-      return { success: false, error: `Error generando código único: ${codeErr?.message || 'sin resultado'}` }
+    // Autogenerar código según tipo_item: INS-XXXX (insumo), MED-XXXX (medicamento) o MAT-XXXX (material)
+    let generatedCode: string | null = null
+    const { data: rpcCode, error: rpcErr } = await admin.rpc('generate_inventario_code', {
+      p_tipo: tipoItem,
+    })
+
+    if (!rpcErr && rpcCode) {
+      generatedCode = rpcCode as string
+    } else {
+      // Fallback seguro si la migración 00011 aún no se ha ejecutado en Supabase
+      const prefijo = TIPOS_ITEM_INVENTARIO[tipoItem].prefijo
+      const { data: existingCodes } = await admin
+        .from('inventario')
+        .select('codigo')
+        .like('codigo', `${prefijo}-%`)
+      let maxNum = 0
+      for (const row of existingCodes || []) {
+        const m = String(row.codigo || '').match(new RegExp(`^${prefijo}-(\\d+)$`))
+        if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10))
+      }
+      generatedCode = `${prefijo}-${String(maxNum + 1).padStart(4, '0')}`
     }
 
     const barcode = input.codigo_barras?.trim() || null
-    const payload = {
-      codigo: generatedCode as string,
+    const basePayload: Record<string, any> = {
+      codigo: generatedCode,
+      tipo_item: tipoItem,
       nombre,
       descripcion: input.descripcion?.trim() || null,
       categoria_id: input.categoria_id,
@@ -171,7 +192,8 @@ export async function crearInsumoRapidoAction(input: {
       precio_venta_referencia: Number(input.precio_venta_referencia) || 0,
       codigo_barras: barcode,
       registro_sanitario: input.registro_sanitario?.trim() || null,
-      clasificacion_riesgo: input.clasificacion_riesgo || 'insumo_general',
+      clasificacion_riesgo:
+        input.clasificacion_riesgo || (tipoItem === 'medicamento' ? 'medicamento' : 'insumo_general'),
       laboratorio_fabricante: input.laboratorio_fabricante?.trim() || null,
       presentacion_comercial: input.presentacion_comercial?.trim() || null,
       condiciones_almacenamiento: input.condiciones_almacenamiento || 'ambiente',
@@ -181,18 +203,31 @@ export async function crearInsumoRapidoAction(input: {
       activo: true,
     }
 
-    const { data: created, error: insErr } = await admin
+    let { data: created, error: insErr } = await admin
       .from('inventario')
-      .insert(payload)
+      .insert(basePayload)
       .select(`
-        id, codigo, nombre, precio_unitario, precio_venta_referencia,
-        codigo_barras, registro_sanitario, laboratorio_fabricante,
-        presentacion_comercial, condiciones_almacenamiento,
-        requiere_lote, requiere_vencimiento, iva_porcentaje,
+        *,
         categoria:categoria_id(nombre),
         unidad_medida:unidad_medida_id(nombre, abreviatura)
       `)
       .single()
+
+    // Si aún no existe la columna tipo_item (antes de correr migración 00011), reintentar sin ella
+    if (insErr && insErr.message?.includes('tipo_item')) {
+      const { tipo_item: _omit, ...fallbackPayload } = basePayload
+      const retry = await admin
+        .from('inventario')
+        .insert(fallbackPayload)
+        .select(`
+          *,
+          categoria:categoria_id(nombre),
+          unidad_medida:unidad_medida_id(nombre, abreviatura)
+        `)
+        .single()
+      created = retry.data
+      insErr = retry.error
+    }
 
     if (insErr || !created) {
       if (insErr?.code === '23505') {
@@ -207,12 +242,12 @@ export async function crearInsumoRapidoAction(input: {
     }
 
     await registrarAuditLog({
-      usuario_id: user.id,
-      rol: profile.rol,
+      usuario_id: ctx.userId,
+      rol: ctx.rol,
       accion: 'inventario.crear_rapido',
       entidad: 'inventario',
       entidad_id: created.id,
-      metadata: { codigo: created.codigo, nombre: created.nombre, codigo_barras: barcode },
+      metadata: { codigo: created.codigo, tipo_item: tipoItem, nombre: created.nombre, codigo_barras: barcode },
     })
 
     revalidatePath('/farmacia/stock')

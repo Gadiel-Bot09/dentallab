@@ -1,10 +1,17 @@
 'use client'
 // src/app/(interno)/_components/InsumoSearchSelect.tsx
 import { useState, useRef, useEffect, useMemo } from 'react'
+import {
+  getBadgeClassPorCodigo,
+  resolverTipoItem,
+  TIPOS_ITEM_INVENTARIO,
+  type TipoItemInventario,
+} from '@/lib/inventario-tipos'
 
 export interface MaterialSearchOption {
   id: string
   codigo: string
+  tipo_item?: TipoItemInventario
   nombre: string
   categoria?: { nombre: string } | null
   unidad_medida?: { nombre: string; abreviatura: string | null } | null
@@ -170,7 +177,7 @@ export default function InsumoSearchSelect({
           <span className="text-slate-500 shrink-0">🔍</span>
           {selectedMaterial ? (
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className="px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20 shrink-0">
+              <span className={`px-1.5 py-0.5 rounded text-[11px] font-mono font-bold border shrink-0 ${getBadgeClassPorCodigo(selectedMaterial.codigo, selectedMaterial.tipo_item)}`}>
                 {selectedMaterial.codigo}
               </span>
               <span className="font-medium text-white truncate text-xs">
@@ -217,7 +224,7 @@ export default function InsumoSearchSelect({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Código (MAT-0001), nombre, código de barras o INVIMA..."
+                placeholder="Código (INS-0001 / MED-0001 / MAT-0001), nombre, EAN o INVIMA..."
                 className="w-full pl-8 pr-7 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500 focus:border-sky-500"
               />
               {searchTerm && (
@@ -266,12 +273,15 @@ export default function InsumoSearchSelect({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border shrink-0 ${getBadgeClassPorCodigo(mat.codigo, mat.tipo_item)}`}>
                         {mat.codigo}
                       </span>
                       <p className="font-semibold text-white truncate">
                         {mat.nombre}
                       </p>
+                      <span className="text-[10px] text-slate-500 shrink-0 hidden sm:inline">
+                        {TIPOS_ITEM_INVENTARIO[resolverTipoItem(mat.codigo, mat.tipo_item)].icono}
+                      </span>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-400 mt-1">

@@ -158,6 +158,7 @@ export default async function StockFarmaciaPage({ searchParams }: PageProps) {
     return {
       material_id: m.id,
       codigo: m.codigo,
+      tipo_item: m.tipo_item || null,
       nombre: m.nombre,
       codigo_barras: m.codigo_barras || null,
       registro_sanitario: m.registro_sanitario || null,

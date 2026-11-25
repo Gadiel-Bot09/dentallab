@@ -1,10 +1,12 @@
 'use client'
 // src/app/(interno)/inventario/_components/InventarioTable.tsx
 import Link from 'next/link'
+import { getBadgeClassPorCodigo } from '@/lib/inventario-tipos'
 
 interface Material {
   id: string
   codigo: string
+  tipo_item?: string | null
   nombre: string
   categoria: { nombre: string }
   unidad_medida: { nombre: string }
@@ -62,7 +64,11 @@ export default function InventarioTable({
                   key={m.id}
                   className={`hover:bg-slate-800/30 transition-colors ${isOut ? 'bg-red-500/5' : isLow ? 'bg-amber-500/5' : ''}`}
                 >
-                  <td className="px-5 py-3 font-mono text-xs text-slate-500">{m.codigo}</td>
+                  <td className="px-5 py-3">
+                    <span className={`inline-block px-2 py-0.5 rounded font-mono text-xs font-bold border ${getBadgeClassPorCodigo(m.codigo, m.tipo_item)}`}>
+                      {m.codigo}
+                    </span>
+                  </td>
                   <td className="px-5 py-3 text-white font-medium">{m.nombre}</td>
                   <td className="px-5 py-3">
                     <span className="px-2 py-0.5 bg-slate-800 text-slate-400 rounded-lg text-xs">

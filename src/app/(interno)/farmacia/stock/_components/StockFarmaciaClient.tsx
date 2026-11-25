@@ -13,6 +13,7 @@ import {
   configurarStockAction,
 } from '../actions'
 import type { MaterialSearchOption } from '@/app/(interno)/_components/InsumoSearchSelect'
+import { getBadgeClassPorCodigo } from '@/lib/inventario-tipos'
 import ModalRecepcionNormativa from './ModalRecepcionNormativa'
 import ModalLotesInsumo from './ModalLotesInsumo'
 import ModalActasRecepcion from './ModalActasRecepcion'
@@ -20,6 +21,7 @@ import ModalActasRecepcion from './ModalActasRecepcion'
 interface StockRow {
   material_id: string
   codigo: string
+  tipo_item?: string | null
   nombre: string
   codigo_barras: string | null
   registro_sanitario: string | null
@@ -417,9 +419,11 @@ export default function StockFarmaciaClient({
                 return (
                   <tr key={row.material_id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="font-mono text-xs text-sky-400 font-semibold">{row.codigo}</p>
+                      <span className={`inline-block px-2 py-0.5 rounded font-mono text-xs font-bold border ${getBadgeClassPorCodigo(row.codigo, row.tipo_item)}`}>
+                        {row.codigo}
+                      </span>
                       {row.codigo_barras && (
-                        <p className="font-mono text-[10px] text-slate-500 mt-0.5">
+                        <p className="font-mono text-[10px] text-slate-500 mt-1">
                           EAN: {row.codigo_barras}
                         </p>
                       )}

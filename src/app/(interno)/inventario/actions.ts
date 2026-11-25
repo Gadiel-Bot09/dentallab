@@ -1,9 +1,10 @@
 'use server'
 // src/app/(interno)/inventario/actions.ts
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { registrarAuditLog } from '@/lib/audit/logger'
+import { TIPOS_ITEM_INVENTARIO, type TipoItemInventario } from '@/lib/inventario-tipos'
 
 async function getCurrentUser() {
   const supabase = await createClient()
@@ -21,14 +22,37 @@ export async function crearMaterialAction(formData: FormData) {
   const ip = headersList.get('x-forwarded-for') ?? null
 
   const stockInicial = parseFloat((formData.get('stock_inicial') as string) || '0')
-  
-  // Autogenerar código desde la base de datos
-  const { data: generatedCode, error: rpcError } = await supabase.rpc('generate_material_code')
-  if (rpcError || !generatedCode) throw new Error('Error generando código único para el material')
-  const codigo = generatedCode
+  const rawTipo = (formData.get('tipo_item') as string) || 'material'
+  const tipoItem: TipoItemInventario =
+    rawTipo === 'insumo' || rawTipo === 'medicamento' || rawTipo === 'material'
+      ? rawTipo
+      : 'material'
 
-  const payload = {
+  // Autogenerar código diferenciado según tipo_item (INS-XXXX / MED-XXXX / MAT-XXXX)
+  const admin = await createAdminClient()
+  let codigo: string | null = null
+  const { data: rpcCode, error: rpcError } = await admin.rpc('generate_inventario_code', {
+    p_tipo: tipoItem,
+  })
+  if (!rpcError && rpcCode) {
+    codigo = rpcCode as string
+  } else {
+    const prefijo = TIPOS_ITEM_INVENTARIO[tipoItem].prefijo
+    const { data: existingCodes } = await admin
+      .from('inventario')
+      .select('codigo')
+      .like('codigo', `${prefijo}-%`)
+    let maxNum = 0
+    for (const row of existingCodes || []) {
+      const m = String(row.codigo || '').match(new RegExp(`^${prefijo}-(\\d+)$`))
+      if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10))
+    }
+    codigo = `${prefijo}-${String(maxNum + 1).padStart(4, '0')}`
+  }
+
+  const payload: Record<string, any> = {
     codigo,
+    tipo_item: tipoItem,
     nombre: formData.get('nombre') as string,
     descripcion: (formData.get('descripcion') as string) || null,
     categoria_id: formData.get('categoria_id') as string,
@@ -48,12 +72,19 @@ export async function crearMaterialAction(formData: FormData) {
     requiere_vencimiento: formData.get('requiere_vencimiento') === 'on',
   }
 
-  // Insert base material
-  const { data: newMaterial, error } = await supabase
+  // Insert base material (con fallback seguro si aún no se corre 00011)
+  let { data: newMaterial, error } = await supabase
     .from('inventario')
     .insert(payload)
     .select('id')
     .single()
+
+  if (error && error.message?.includes('tipo_item')) {
+    const { tipo_item: _omit, ...fallbackPayload } = payload
+    const retry = await supabase.from('inventario').insert(fallbackPayload).select('id').single()
+    newMaterial = retry.data
+    error = retry.error
+  }
 
   if (error || !newMaterial) {
     if (error?.code === '23505') throw new Error('Ya existe un material con ese código único o código de barras')

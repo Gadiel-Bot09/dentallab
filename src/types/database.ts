@@ -74,6 +74,7 @@ export interface PacienteConOdontologo extends Paciente {
 export interface Inventario {
   id: string
   codigo: string
+  tipo_item?: 'insumo' | 'medicamento' | 'material'
   nombre: string
   descripcion: string | null
   categoria: string

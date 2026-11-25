@@ -6,6 +6,11 @@ import { crearMaterialAction } from '../../actions'
 import CrearCategoriaInventarioModal from '@/components/modals/CrearCategoriaInventarioModal'
 import CrearUnidadMedidaModal from '@/components/modals/CrearUnidadMedidaModal'
 import { CLASIFICACION_RIESGO_LABELS, CONDICION_ALMACENAMIENTO_LABELS } from '@/types/farmacia'
+import {
+  TIPOS_ITEM_INVENTARIO,
+  TIPOS_ITEM_ORDEN,
+  type TipoItemInventario,
+} from '@/lib/inventario-tipos'
 
 export default function NuevoMaterialForm({
   initialCategorias,
@@ -23,6 +28,7 @@ export default function NuevoMaterialForm({
 
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('')
   const [unidadSeleccionada, setUnidadSeleccionada] = useState('')
+  const [tipoItem, setTipoItem] = useState<TipoItemInventario>('material')
 
   const [isModalCategoriaOpen, setIsModalCategoriaOpen] = useState(false)
   const [isModalUnidadOpen, setIsModalUnidadOpen] = useState(false)
@@ -58,12 +64,44 @@ export default function NuevoMaterialForm({
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Tipo de Ítem y Prefijo de Código *
+            </label>
+            <input type="hidden" name="tipo_item" value={tipoItem} />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {TIPOS_ITEM_ORDEN.map((t) => {
+                const meta = TIPOS_ITEM_INVENTARIO[t]
+                const active = tipoItem === t
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTipoItem(t)}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      active
+                        ? meta.activeCardClass
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-base">{meta.icono}</span>
+                      <span className="font-mono text-xs font-bold">{meta.ejemplo}</span>
+                    </div>
+                    <p className="text-xs font-semibold mt-1">{meta.label}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{meta.descripcion}</p>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Código Único *</label>
             <input
               disabled
-              value="Se generará automáticamente (Ej. MAT-0001)"
-              className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-500 text-sm cursor-not-allowed"
+              value={`Se generará automáticamente (Ej. ${TIPOS_ITEM_INVENTARIO[tipoItem].ejemplo})`}
+              className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-400 font-mono text-sm cursor-not-allowed"
             />
           </div>
           <div>

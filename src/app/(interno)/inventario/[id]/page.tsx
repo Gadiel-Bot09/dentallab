@@ -10,6 +10,7 @@ import {
   type ClasificacionRiesgo,
   type CondicionAlmacenamiento,
 } from '@/types/farmacia'
+import { getBadgeClassPorCodigo, resolverTipoItem, TIPOS_ITEM_INVENTARIO } from '@/lib/inventario-tipos'
 
 export const metadata: Metadata = {
   title: 'Detalle de Material — DentalLab Manager',
@@ -53,10 +54,14 @@ export default async function InventarioDetallePage({ params }: { params: Promis
 
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold text-white">{material.nombre}</h1>
-            <span className="bg-sky-500/20 text-sky-400 px-3 py-1 rounded-lg text-sm font-mono font-bold">
+            <span className={`px-3 py-1 rounded-lg text-sm font-mono font-bold border ${getBadgeClassPorCodigo(material.codigo, material.tipo_item)}`}>
               {material.codigo}
+            </span>
+            <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+              {TIPOS_ITEM_INVENTARIO[resolverTipoItem(material.codigo, material.tipo_item)].icono}{' '}
+              {TIPOS_ITEM_INVENTARIO[resolverTipoItem(material.codigo, material.tipo_item)].corto}
             </span>
             {isOut ? (
               <span className="bg-red-500/20 text-red-400 px-2 py-1 rounded-md text-xs font-medium border border-red-500/20">Agotado</span>

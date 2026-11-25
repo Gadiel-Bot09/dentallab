@@ -16,6 +16,11 @@ import {
 } from '@/types/farmacia'
 import InsumoSearchSelect, { type MaterialSearchOption } from '@/app/(interno)/_components/InsumoSearchSelect'
 import {
+  TIPOS_ITEM_INVENTARIO,
+  TIPOS_ITEM_ORDEN,
+  type TipoItemInventario,
+} from '@/lib/inventario-tipos'
+import {
   crearInsumoRapidoAction,
   crearProveedorAction,
   obtenerDetalleRecepcionAction,
@@ -124,6 +129,7 @@ export default function ModalRecepcionNormativa({
   const [savingInsumo, setSavingInsumo] = useState(false)
   const [nuevoInsumoForm, setNuevoInsumoForm] = useState({
     nombre: '',
+    tipo_item: 'insumo' as TipoItemInventario,
     categoria_id: categorias[0]?.id || '',
     unidad_medida_id: unidades[0]?.id || '',
     codigo_barras: '',
@@ -294,6 +300,7 @@ export default function ModalRecepcionNormativa({
     setNuevoInsumoErr(null)
     setNuevoInsumoForm({
       nombre: initialName,
+      tipo_item: 'insumo',
       categoria_id: categorias[0]?.id || '',
       unidad_medida_id: unidades[0]?.id || '',
       codigo_barras: initialBarcode || currentRow?.codigo_barras || '',
@@ -328,6 +335,7 @@ export default function ModalRecepcionNormativa({
     setSavingInsumo(true)
     const res = await crearInsumoRapidoAction({
       nombre: nuevoInsumoForm.nombre.trim(),
+      tipo_item: nuevoInsumoForm.tipo_item,
       categoria_id: nuevoInsumoForm.categoria_id,
       unidad_medida_id: nuevoInsumoForm.unidad_medida_id,
       codigo_barras: nuevoInsumoForm.codigo_barras.trim() || undefined,
@@ -1304,7 +1312,11 @@ export default function ModalRecepcionNormativa({
                   <span>Registrar Nuevo Insumo en Catálogo</span>
                 </h4>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Se generará su código interno (MAT-XXXX) y quedará seleccionado automáticamente en la fila #{nuevoInsumoModal.targetRowIdx + 1}.
+                  Se generará automáticamente su código{' '}
+                  <span className="font-mono font-bold text-emerald-400">
+                    {TIPOS_ITEM_INVENTARIO[nuevoInsumoForm.tipo_item].prefijo}-XXXX
+                  </span>{' '}
+                  y quedará seleccionado en la fila #{nuevoInsumoModal.targetRowIdx + 1}.
                 </p>
               </div>
               <button
@@ -1324,6 +1336,49 @@ export default function ModalRecepcionNormativa({
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Tipo de Registro y Prefijo de Código <span className="text-red-400">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {TIPOS_ITEM_ORDEN.map((t) => {
+                      const meta = TIPOS_ITEM_INVENTARIO[t]
+                      const active = nuevoInsumoForm.tipo_item === t
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() =>
+                            setNuevoInsumoForm({
+                              ...nuevoInsumoForm,
+                              tipo_item: t,
+                              clasificacion_riesgo:
+                                t === 'medicamento'
+                                  ? 'medicamento'
+                                  : nuevoInsumoForm.clasificacion_riesgo === 'medicamento'
+                                  ? 'insumo_general'
+                                  : nuevoInsumoForm.clasificacion_riesgo,
+                            })
+                          }
+                          className={`p-2.5 rounded-xl border text-left transition-all ${
+                            active
+                              ? meta.activeCardClass
+                              : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-sm">{meta.icono}</span>
+                            <span className="font-mono text-[10px] font-bold opacity-90">
+                              {meta.ejemplo}
+                            </span>
+                          </div>
+                          <p className="text-xs font-semibold mt-1 leading-tight">{meta.corto}</p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-medium text-slate-300 mb-1">
                     Nombre del Insumo / Medicamento <span className="text-red-400">*</span>

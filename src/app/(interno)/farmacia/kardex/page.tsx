@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { MOV_FARMACIA_TIPO_LABELS, type MovFarmaciaTipo } from '@/types/farmacia'
+import { getBadgeClassPorCodigo } from '@/lib/inventario-tipos'
 
 export const metadata: Metadata = {
   title: 'Kardex de Farmacia — DentalLab Manager',
@@ -197,7 +198,9 @@ export default async function KardexFarmaciaPage({ searchParams }: PageProps) {
                     <td className="px-4 py-3">
                       <p className="font-medium text-white">{m.material?.nombre}</p>
                       <div className="flex flex-wrap items-center gap-1.5 text-[11px] mt-0.5">
-                        <span className="text-sky-400 font-mono">{m.material?.codigo}</span>
+                        <span className={`px-1.5 py-0.5 rounded font-mono text-[10px] font-bold border ${getBadgeClassPorCodigo(m.material?.codigo)}`}>
+                          {m.material?.codigo}
+                        </span>
                         {m.numero_lote && (
                           <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-[10px]">
                             Lote: {m.numero_lote}
